@@ -1,3 +1,13 @@
+#include <stdio.h>
+#include <raylib.h>
+#include <fileutils.h>
+#include <string.h>
+#include <darray.h>
+#include <assert.h>
+#include <ctype.h>
+
+#include "cssparser.h"
+
 int cssmain(){
     const char* example_path = "examples/sample.css";
     size_t content_size;

@@ -31,11 +31,10 @@ int parse_css_file(const char* content, CSSNodes* outNodes);
 enum {
     CSSERR_TODO=1,
     CSSERR_EOF,
-    CSSERR_MISSING_SEPERATOR,
     CSSERR_ATTR,
     CSSERR_COUNT
 };
-static_assert(CSSERR_COUNT == 5, "Update csserr_strtab");
+static_assert(CSSERR_COUNT == 4, "Update csserr_strtab");
 
 extern const char* csserr_strtab[CSSERR_COUNT];
 const char* csserr_str(int err);
