@@ -60,7 +60,11 @@ int main(void) {
     size_t content_size;
     char* content_data = (char*)read_entire_file(example_path, &content_size);
     char* content = content_data;
-    if(memcmp(content, "<!DOCTYPE html>", 15) == 0) content += 15;
+    bool quirks_mode = true;
+    if(!memcmp(content, "<!DOCTYPE html>", 15)) {
+        content += 15;
+        quirks_mode = false;
+    }
     HTMLTag tag = { 0 };
     int e = html_parse_next_tag(content, &tag);
     if(e != 0) {
