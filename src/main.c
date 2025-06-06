@@ -65,6 +65,7 @@ int main(void) {
         content += 15;
         quirks_mode = false;
     }
+    (void) quirks_mode;
     HTMLTag tag = { 0 };
     int e = html_parse_next_tag(content, &tag);
     if(e != 0) {
