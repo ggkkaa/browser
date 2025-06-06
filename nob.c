@@ -66,7 +66,9 @@ int main(int argc, char** argv) {
         const char* out = temp_sprintf("%s/bikeshed/%.*s.o", bindir, (int)(strlen(src + src_prefix_len)-2), src + src_prefix_len);
         da_append(&objs, out);
         if(!nob_c_needs_rebuild1(&stb, &pathb, out, src)) continue;
+        // C compiler
         cmd_append(&cmd, cc);
+        // Warnings
         cmd_append(&cmd,
             "-Wall",
             "-Wextra",
@@ -74,10 +76,15 @@ int main(int argc, char** argv) {
             "-Werror",
         #endif
         );
+        // Include directories 
+        cmd_append(&cmd,
+            "-I", "vendor/raylib/raylib-5.5_linux_amd64/include",
+            "-I", "include",
+        );
+        // Actual compilation
         cmd_append(&cmd,
             "-MD", "-O1", "-c",
             src,
-            "-I", "include",
             "-o", out,
         );
         if(!cmd_run_sync_and_reset(&cmd)) return 1;
@@ -86,6 +93,12 @@ int main(int argc, char** argv) {
     if(needs_rebuild(exe, objs.items, objs.count)) {
         cmd_append(&cmd, cc, "-o", exe);
         da_append_many(&cmd, objs.items, objs.count);
+        // Vendor libraries we link with
+        cmd_append(&cmd, 
+            "-Lvendor/raylib/raylib-5.5_linux_amd64/lib",
+            "-l:libraylib.a"
+        );
+        cmd_append(&cmd, "-lm");
         if(!cmd_run_sync_and_reset(&cmd)) return 1;
     }
 }
