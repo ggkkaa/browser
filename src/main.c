@@ -97,6 +97,7 @@ int main(void) {
     HTMLTag* node = &root;
     for(;;) {
         while(isspace(*content)) content++;
+        if(*content == '\0') break;
         if(content[0] == '<' && content[1] == '/') {
             while(*content != '>' && *content) content++;
             content++;
