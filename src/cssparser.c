@@ -194,7 +194,6 @@ int parse_css_node(const char* content, CSSNode* out, char** end){
 }
 
 int parse_css_file(const char* content, CSSNodes* outNodes){
-    (void)outNodes;
     char* cur = (char*)content;
     CSSNode node = {0};
 
