@@ -62,6 +62,23 @@ int html_parse_next_tag(const char* content, HTMLTag* tag, char** end) {
     *end = (char*)content;
     return 0;
 }
+void dump_html_tag(HTMLTag* tag, size_t indent) {
+    if(tag->name) {
+        printf("%*s<%.*s>\n", (int)indent, "", (int)tag->name_len, tag->name);
+        for(size_t i = 0; i < tag->children.len; ++i) {
+            dump_html_tag(tag->children.items[i], indent + 4);
+        }
+        printf("%*s</%.*s>\n", (int)indent, "", (int)tag->name_len, tag->name);
+    } else {
+        printf("%*s", (int)indent, "");
+        for(size_t i = 0; i < tag->str_content_len; ++i) {
+            char c = tag->str_content[i];
+            if(isgraph(c) || c == ' ') printf("%c", c);
+            else printf("\\x%02X", c);
+        }
+        printf("\n");
+    }
+}
 int main(void) {
     // TODO: Unhardcode this sheizung
     const char* example_path = "examples/barebones.html";
@@ -81,8 +98,10 @@ int main(void) {
     for(;;) {
         while(isspace(*content)) content++;
         if(content[0] == '<' && content[1] == '/') {
-            while(*content != '>') content++;
+            while(*content != '>' && *content) content++;
+            content++;
             node = node->parent;
+            continue;
         }
         HTMLTag* tag = malloc(sizeof(*tag));
         assert(tag && "Just buy more RAM");
@@ -97,6 +116,10 @@ int main(void) {
             return 1;
         }
     }
+    if(node != &root) {
+        fprintf(stderr, "WARN: Some unclosed tags.\n");
+    }
+    dump_html_tag(node, 0);
     InitWindow(WIDTH, HEIGHT, "Bikeshed");
     while(!WindowShouldClose()) {
         BeginDrawing();
