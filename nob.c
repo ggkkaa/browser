@@ -77,8 +77,8 @@ int main(int argc, char** argv) {
         cmd_append(&cmd,
             "-MD", "-O1", "-c",
             src,
-            "-o", out,
             "-I", "include",
+            "-o", out,
         );
         if(!cmd_run_sync_and_reset(&cmd)) return 1;
     }
