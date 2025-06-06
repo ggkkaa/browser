@@ -3,10 +3,15 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
+#include <stdbool.h>
+
+#define CSS_MALLOC malloc
+#define CSS_FREE free
 
 const char* csserr_strtab[] = {
     [CSSERR_TODO] = "Unimplemented",
     [CSSERR_EOF]  = "End of File",
+    [CSSERR_UNEXPECTED_LEXEM]  = "Unexpected Lexem",
     [CSSERR_ATTR] = "Couldn't parse attribute"
 };
 
@@ -17,102 +22,185 @@ const char* csserr_str(int err) {
     return csserr_strtab[err];
 }
 
-#define CSS_MALLOC malloc
-#define CSS_FREE(ptr) (free(ptr))
+enum {
+    CSSLEXEM_SPECIALCHAR,
+    CSSLEXEM_TEXT
+};
 
-//TODO: trim comments `/* css comment */`
-char* trim_left(char* cur){
-    char *out_cur = cur;
-    while(isspace(*out_cur) != 0) out_cur++;
-    return out_cur;
+typedef struct{
+    char* content;
+    size_t len;
+    size_t type;
+} CSSLexem;
+
+const char css_special_characters[] = {
+    '{',
+    '}',
+    ';',
+    ':',
+};
+
+//TODO: better way to trim comments
+char* trim_left(const char* content) {
+    char* cur = (char*)content;
+    while (*cur != '\0') {
+        if (isspace(*cur)) {
+            cur++;
+            continue;
+        }
+        
+        if (cur[0] == '/' && cur[1] == '*') {
+            cur += 2;
+            
+            while (*cur != '\0') {
+                if (cur[0] == '*' && cur[1] == '/') {
+                    cur += 2;
+                    break;
+                }
+                cur++;
+            }
+            continue;
+        }
+        
+        break;
+    }
+    return cur;
 }
 
-int parse_css_attr(const char* content, char** content_end, CSSAttr* outAttr){
+int is_special_char(char ch){
+    for(size_t i = 0; i < sizeof(css_special_characters)/sizeof(css_special_characters[0]); i++){
+        if(ch == css_special_characters[i]){
+            return i;
+        }
+    }
+    return -1;
+}
+
+int chop_css_lexem(const char* content, CSSLexem* out, char** end){
     char* cur = (char*)content;
     cur = trim_left(cur);
-    if(*cur == '}') return 0;
-    if(*(cur+1) == 0) return -CSSERR_EOF;
+    if(*cur == 0) return -CSSERR_EOF;
 
-    char* name_content = cur;
-    size_t name_len = 0;
+    //checking if lexem is special char
+    int isSpecialChar = is_special_char(*cur);
+    if(isSpecialChar >= 0){
+        out->type = CSSLEXEM_SPECIALCHAR;
+        out->content=cur;
+        out->len=1;
+        *end = cur+1;
+        return 0;
+    }
 
-    cur = strchr(cur,':');
-    if(*(cur+1) == 0) return -CSSERR_EOF;
-    name_len = cur-name_content;
-    cur++;
+    out->type = CSSLEXEM_TEXT;
+    out->content = cur;
 
-    cur = trim_left(cur);
-    char* value_content = cur;
-    size_t value_len = 0;
+    while(!isspace(cur[0]) && cur[0] != '/' && is_special_char(cur[0]) == -1) cur++;
 
-    while(*cur != ';') cur++;
-    if(*(cur+1) == 0) return -CSSERR_EOF;
-    value_len = cur - value_content;
-    cur++;
-
-    outAttr->name_content = name_content;
-    outAttr->name_len = name_len;
-    outAttr->value_content = value_content;
-    outAttr->value_len = value_len;
-    *content_end = cur;
-    return 1;
+    out->len = cur - out->content;
+    *end = cur;
+    return 0;
 }
 
-int parse_css_node(const char* content, char** content_end, CSSNode* outNode){
-    char *cur = (char*)content;
-    cur = trim_left(cur);
-    if(*(cur+1) == 0) return -CSSERR_EOF;
+int expect_special_lexem(const char* content, char ch, char** end){
+    char* cur = (char*)content;
+    CSSLexem lexem = {0};
+    int result = chop_css_lexem(cur,&lexem, &cur);
+    if(result < 0) return result;
 
-    char* name_content = cur;
-    size_t name_len = 0;
+    if(lexem.type != CSSLEXEM_SPECIALCHAR) return -CSSERR_UNEXPECTED_LEXEM;
+    if(*lexem.content != ch) return -CSSERR_UNEXPECTED_LEXEM;
 
-    cur = strchr(cur,'{');
-    if(*(cur+1) == 0) return -CSSERR_EOF;
-    name_len = cur-name_content;
-    cur++;
+    *end = cur;
+    return 0;
+}
+
+int parse_css_attr(const char* content, CSSAttr* out, char** end){
+    char* cur = (char*)content;
+    CSSLexem lexem = {0};
+    int result = chop_css_lexem(cur,&lexem, &cur);
+    if(result < 0) return result;
+    if(lexem.type == CSSLEXEM_SPECIALCHAR && *lexem.content == '}') return 1;
+
+    if(lexem.type != CSSLEXEM_TEXT) return -CSSERR_UNEXPECTED_LEXEM;
+    out->name_content = lexem.content;
+    out->name_len = lexem.len;
+
+    result = expect_special_lexem(cur, ':', &cur);
+    if(result < 0) return result;
+
+    CSSAttrVals vals = {0};
+    
+    while(true){
+        result = chop_css_lexem(cur,&lexem, &cur);
+        if(result < 0) {
+            CSS_FREE(vals.items);
+            return result;
+        }
+
+        if(lexem.type == CSSLEXEM_SPECIALCHAR && *lexem.content == ';'){
+            cur++;
+            break;
+        }
+
+        if(lexem.type != CSSLEXEM_TEXT) {
+            CSS_FREE(vals.items);
+            return -CSSERR_UNEXPECTED_LEXEM;
+        }
+
+        da_push(&vals, ((CSSAttrVal){.value_content = lexem.content, .value_len = lexem.len}));
+    }
+
+    out->values = vals;
+
+    *end = cur;
+    return 0;
+}
+
+int parse_css_node(const char* content, CSSNode* out, char** end){
+    char* cur = (char*)content;
+    CSSLexem lexem = {0};
+    int result = chop_css_lexem(cur,&lexem, &cur);
+    if(result < 0) return result;
+
+    if(lexem.type != CSSLEXEM_TEXT) return -CSSERR_UNEXPECTED_LEXEM;
+    out->name_content = lexem.content;
+    out->name_len = lexem.len;
+
+    result = expect_special_lexem(cur, '{', &cur);
+    if(result < 0) return result;
 
     CSSAttrs attrs = {0};
     CSSAttr attr = {0};
 
-    int result = 1;
-    while(result > 0){
-        result = parse_css_attr(cur,&cur,&attr);
-        if(result < 0) return result;
+    while(true){
+        result = parse_css_attr(cur, &attr, &cur);
+        if(result == 1) break;
+        if(result < 0) {
+            CSS_FREE(attrs.items);
+            return result;
+        }
         da_push(&attrs, attr);
     }
 
-    cur = strchr(cur,'}')+1;
-    
-    memset(outNode,0, sizeof(CSSNode));
-    outNode->name_content = name_content;
-    outNode->name_len = name_len;
-    outNode->attrs = attrs;
-    *content_end = cur;
+    result = expect_special_lexem(cur, '}', &cur);
+    if(result < 0) {
+        CSS_FREE(attrs.items);
+        return result;
+    }
+
+    out->attrs = attrs;
+    *end = cur;
     return 0;
 }
 
 int parse_css_file(const char* content, CSSNodes* outNodes){
+    (void)outNodes;
     char* cur = (char*)content;
     CSSNode node = {0};
 
     int result = 0;
     while(*cur != '\0'){
-        result = parse_css_node(cur, &cur, &node);
-        if(result < 0) return result;
-        da_push(outNodes, node);
-    }
-
-    return 0;
-}
-
-int parse_css_buffer(const char* content, size_t size, CSSNodes* outNodes){
-    char* cur = (char*)content;
-    CSSNode node = {0};
-
-    int result = 0;
-    while(cur < content+size){
-        if(*cur == '\0') return -CSSERR_EOF;
-        result = parse_css_node(cur, &cur, &node);
+        result = parse_css_node(cur, &node, &cur);
         if(result < 0) return result;
         da_push(outNodes, node);
     }

@@ -22,17 +22,20 @@ int cssmain(){
         return 1;
     }
 
-    printf("Parsed: %zu\n\n", cssNodes.len);
+    printf("Parsed: %zu", cssNodes.len);
     for(size_t i = 0; i < cssNodes.len; i++){
         CSSNode* node = &cssNodes.items[i];
-        printf("-------------------\n");
-        printf("Name: %.*s\n", (int)node->name_len, node->name_content);
+        printf("\n----\"%.*s\"-----\n", (int)node->name_len, node->name_content);
         if(node->attrs.len > 0) printf("attrs:\n");
         for(size_t j = 0; j < node->attrs.len; j++){
             CSSAttr* attr = &node->attrs.items[j];
-            printf("name: %.*s, value: %.*s\n", (int)attr->name_len, attr->name_content,(int)attr->value_len,attr->value_content);
+            printf("name: %.*s, values: ", (int)attr->name_len, attr->name_content);
+            for(size_t m = 0; m < attr->values.len; m++){
+                CSSAttrVal* attrVal = &attr->values.items[m];
+                printf("%.*s ", (int)attrVal->value_len, attrVal->value_content);
+            }
+            printf("\n");
         }
-        printf("-------------------\n");
     }
 
     return 0;
