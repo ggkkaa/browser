@@ -13,11 +13,13 @@
 #define HEIGHT H_RATIO*SCALE
 typedef struct HTMLTag HTMLTag;
 typedef struct {
-    HTMLTag* items;
+    HTMLTag** items;
     size_t len, cap;
 } HTMLTags;
 struct HTMLTag {
+    HTMLTag* parent;
     const char* name;
+    size_t name_len;
     HTMLTags children;
     const char* str_content;
     size_t str_content_len;
@@ -42,16 +44,22 @@ const char* htmlerr_str(int err) {
 #define STRINGIFY0(x) # x
 #define STRINGIFY1(x) STRINGIFY0(x)
 #define todof(...) (fprintf(stderr, "TODO " __FILE__ ":" STRINGIFY1(__LINE__) ":" __VA_ARGS__), abort())
-int html_parse_next_tag(const char* content, HTMLTag* tag) {
-    while(isspace(*content)) content++;
+int html_parse_next_tag(const char* content, HTMLTag* tag, char** end) {
     if(*content == '<') {
-        todof("parse HTML tag\n");
-        return -HTMLERR_TODO;
+        content++;
+        tag->name = content;
+        while(isalnum(*content)) content++;
+        tag->name_len = content - tag->name;
+        if(*content != '>') todof("parse attributes");
+        content++;
+        *end = (char*)content;
+        return 0;
     }
     if(*content == '\0') return -HTMLERR_EOF;
     tag->str_content = content;
     while(*content != '<' && *content) content++;
     tag->str_content_len = content - tag->str_content;
+    *end = (char*)content;
     return 0;
 }
 int main(void) {
@@ -66,11 +74,28 @@ int main(void) {
         quirks_mode = false;
     }
     (void) quirks_mode;
-    HTMLTag tag = { 0 };
-    int e = html_parse_next_tag(content, &tag);
-    if(e != 0) {
-        fprintf(stderr, "Failed to parse tag: %s\n", htmlerr_str(e));
-        return 1;
+    HTMLTag root = { 0 };
+    root.name = "\\root";
+    root.name_len = strlen(root.name);
+    HTMLTag* node = &root;
+    for(;;) {
+        while(isspace(*content)) content++;
+        if(content[0] == '<' && content[1] == '/') {
+            while(*content != '>') content++;
+            node = node->parent;
+        }
+        HTMLTag* tag = malloc(sizeof(*tag));
+        assert(tag && "Just buy more RAM");
+        memset(tag, 0, sizeof(*tag));
+        da_push(&node->children, tag);
+        tag->parent = node; 
+        int e = html_parse_next_tag(content, tag, &content);
+        if(e == -HTMLERR_EOF) break;
+        if(tag->name) node = tag;
+        if(e != 0) {
+            fprintf(stderr, "Failed to parse tag: %s\n", htmlerr_str(e));
+            return 1;
+        }
     }
     InitWindow(WIDTH, HEIGHT, "Bikeshed");
     while(!WindowShouldClose()) {
