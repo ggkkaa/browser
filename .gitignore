@@ -1,2 +1,4 @@
 *.old
 nob
+bikeshed
+bin/
