@@ -2,7 +2,6 @@
 #pragma once
 #include <stdio.h>
 #include <stdlib.h>
-#include "utils.h"
 #define DA_REALLOC(optr, osize, new_size) realloc(optr, new_size)
 #define da_reserve(da, extra) \
    do {\
