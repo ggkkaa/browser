@@ -21,12 +21,15 @@ const char* csserr_str(int err) {
 #define CSS_MALLOC malloc
 #define CSS_FREE(ptr) (free(ptr))
 
-void trim_left(char** cur, const char* content_end){
-    while(isspace(**cur) != 0 && *cur < content_end) (*cur) += 1;
+char* trim_left(char* cur, const char* content_end){
+    char *out_cur = cur;
+    while(isspace(*out_cur) != 0 && out_cur < content_end) out_cur++;
+
+    return out_cur;
 }
 
 int parse_css_attr(char** cur, const char* content_end, CSSAttr* outAttr){
-    trim_left(cur, content_end);
+    *cur = trim_left(*cur, content_end);
     if(**cur == '}') return 0;
     if(*cur + 1 >= content_end) return -CSSERR_EOF;
 
@@ -38,7 +41,7 @@ int parse_css_attr(char** cur, const char* content_end, CSSAttr* outAttr){
     name_len = *cur-name_content;
 
     *cur += 1;
-    trim_left(cur, content_end);
+    *cur = trim_left(*cur, content_end);
     char* value_content = *cur;
     size_t value_len = 0;
 
@@ -55,7 +58,7 @@ int parse_css_attr(char** cur, const char* content_end, CSSAttr* outAttr){
 }
 
 int parse_css_node(char** cur, const char* content_end, CSSNode* outNode){
-    trim_left(cur, content_end);
+    *cur = trim_left(*cur, content_end);
     if(*cur + 1 >= content_end) return 0;
 
     char* name_content = *cur;
