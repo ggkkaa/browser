@@ -1,4 +1,4 @@
-/* nob - v1.20.6 - Public Domain - https://github.com/tsoding/nob.h
+/* nob - v1.19.0 - Public Domain - https://github.com/tsoding/nob.h
 
    This library is the next generation of the [NoBuild](https://github.com/tsoding/nobuild) idea.
 
@@ -151,8 +151,7 @@
       for instance will retain their prefix even if NOB_STRIP_PREFIX is enabled. Notable exception is the
       nob_log() function. Stripping away the prefix results in log() which was historically always referring
       to the natural logarithmic function that is already defined in math.h. So there is no reason to strip
-      off the prefix for nob_log(). Another exception is nob_rename() which collides with the widely known
-      POSIX function rename(2) if you strip the prefix off.
+      off the prefix for nob_log().
 
       The prefixes are stripped off only on the level of preprocessor. The names of the functions in the
       compiled object file will still retain the `nob_` prefix. Keep that in mind when you FFI with nob.h
@@ -213,15 +212,11 @@
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)
-//   https://gcc.gnu.org/onlinedocs/gcc-4.7.2/gcc/Function-Attributes.html
-#    ifdef __MINGW_PRINTF_FORMAT
-#        define NOB_PRINTF_FORMAT(STRING_INDEX, FIRST_TO_CHECK) __attribute__ ((format (__MINGW_PRINTF_FORMAT, STRING_INDEX, FIRST_TO_CHECK)))
-#    else
-#        define NOB_PRINTF_FORMAT(STRING_INDEX, FIRST_TO_CHECK) __attribute__ ((format (printf, STRING_INDEX, FIRST_TO_CHECK)))
-#    endif // __MINGW_PRINTF_FORMAT
+// https://gcc.gnu.org/onlinedocs/gcc-4.7.2/gcc/Function-Attributes.html
+#define NOB_PRINTF_FORMAT(STRING_INDEX, FIRST_TO_CHECK) __attribute__ ((format (printf, STRING_INDEX, FIRST_TO_CHECK)))
 #else
-//   TODO: implement NOB_PRINTF_FORMAT for MSVC
-#    define NOB_PRINTF_FORMAT(STRING_INDEX, FIRST_TO_CHECK)
+// TODO: implement NOB_PRINTF_FORMAT for MSVC
+#define NOB_PRINTF_FORMAT(STRING_INDEX, FIRST_TO_CHECK)
 #endif
 
 #define NOB_UNUSED(value) (void)(value)
@@ -273,7 +268,6 @@ bool nob_read_entire_dir(const char *parent, Nob_File_Paths *children);
 bool nob_write_entire_file(const char *path, const void *data, size_t size);
 Nob_File_Type nob_get_file_type(const char *path);
 bool nob_delete_file(const char *path);
-
 #define nob_return_defer(value) do { result = (value); goto defer; } while(0)
 
 // Initial capacity of a dynamic array
@@ -408,7 +402,7 @@ bool nob_procs_wait_and_reset(Nob_Procs *procs);
 // Append a new process to procs array and if procs.count reaches max_procs_count call nob_procs_wait_and_reset() on it
 bool nob_procs_append_with_flush(Nob_Procs *procs, Nob_Proc proc, size_t max_procs_count);
 
-// A command - the main workhorse of Nob. Nob is all about building commands and running them
+// A command - the main workhorse of Nob. Nob is all about building commands an running them
 typedef struct {
     const char **items;
     size_t count;
@@ -439,7 +433,6 @@ typedef struct {
 // use it as a C string.
 void nob_cmd_render(Nob_Cmd cmd, Nob_String_Builder *render);
 
-// TODO: implement C++ support for nob.h
 #define nob_cmd_append(cmd, ...) \
     nob_da_append_many(cmd, \
                        ((const char*[]){__VA_ARGS__}), \
@@ -481,6 +474,18 @@ void nob_temp_reset(void);
 size_t nob_temp_save(void);
 void nob_temp_rewind(size_t checkpoint);
 
+// [ADDIN START]
+// Previously known as utils.h
+bool nob_mkdir_if_not_exists_silent(const char *path);
+// Previously known as depan.h:
+const char* nob_strltrim(const char* data);
+void nob_remove_backslashes(char* data);
+bool nob_dep_analyse_str(char* data, char** result, Nob_File_Paths* paths); 
+bool nob_c_needs_rebuild1(Nob_String_Builder* string_buffer, Nob_File_Paths* paths, const char* output_path, const char* input_path);
+bool nob_c_needs_rebuild(Nob_String_Builder* string_buffer, Nob_File_Paths* paths, const char* output_path, const char** input_paths, size_t input_paths_count);
+char* nob_temp_realpath(const char* path);
+// [ADDIN END]
+
 // Given any path returns the last part of that path.
 // "/path/to/a/file.c" -> "file.c"; "/path/to/a/directory" -> "directory"
 const char *nob_path_name(const char *path);
@@ -491,54 +496,9 @@ int nob_file_exists(const char *file_path);
 const char *nob_get_current_dir_temp(void);
 bool nob_set_current_dir(const char *path);
 
-// TODO: we should probably document somewhere all the compiler we support
-
-// The nob_cc_* macros try to abstract away the specific compiler.
-// They are verify basic and not particularly flexible, but you can redefine them if you need to
-// or not use them at all and create your own abstraction on top of Nob_Cmd.
-
-#ifndef nob_cc
-#  if _WIN32
-#    if defined(__GNUC__)
-#       define nob_cc(cmd) nob_cmd_append(cmd, "cc")
-#    elif defined(__clang__)
-#       define nob_cc(cmd) nob_cmd_append(cmd, "clang")
-#    elif defined(_MSC_VER)
-#       define nob_cc(cmd) nob_cmd_append(cmd, "cl.exe")
-#    endif
-#  else
-#    define nob_cc(cmd) nob_cmd_append(cmd, "cc")
-#  endif
-#endif // nob_cc
-
-#ifndef nob_cc_flags
-#  if defined(_MSC_VER) && !defined(__clang__)
-#    define nob_cc_flags(...)  // TODO: Add some cool recommended flags for MSVC (I don't really know any)
-#  else
-#    define nob_cc_flags(cmd) nob_cmd_append(cmd, "-Wall", "-Wextra")
-#  endif
-#endif // nob_cc_output
-
-#ifndef nob_cc_output
-#  if defined(_MSC_VER) && !defined(__clang__)
-#    define nob_cc_output(cmd, output_path) nob_cmd_append(cmd, nob_temp_sprintf("/Fe:%s", (output_path)))
-#  else
-#    define nob_cc_output(cmd, output_path) nob_cmd_append(cmd, "-o", (output_path))
-#  endif
-#endif // nob_cc_output
-
-#ifndef nob_cc_inputs
-#  define nob_cc_inputs(cmd, ...) nob_cmd_append(cmd, __VA_ARGS__)
-#endif // nob_cc_inputs
-
-// TODO: add MinGW support for Go Rebuild Urself™ Technology and all the nob_cc_* macros above
-//   Musializer contributors came up with a pretty interesting idea of an optional prefix macro which could be useful for
-//   MinGW support:
-//   https://github.com/tsoding/musializer/blob/b7578cc76b9ecb573d239acc9ccf5a04d3aba2c9/src_build/nob_win64_mingw.c#L3-L9
-// TODO: Maybe instead NOB_REBUILD_URSELF macro, the Go Rebuild Urself™ Technology should use the
-//   user defined nob_cc_* macros instead?
+// TODO: add MinGW support for Go Rebuild Urself™ Technology
 #ifndef NOB_REBUILD_URSELF
-#  if defined(_WIN32)
+#  if _WIN32
 #    if defined(__GNUC__)
 #       define NOB_REBUILD_URSELF(binary_path, source_path) "gcc", "-o", binary_path, source_path
 #    elif defined(__clang__)
@@ -888,49 +848,6 @@ void nob_cmd_render(Nob_Cmd cmd, Nob_String_Builder *render)
     }
 }
 
-#ifdef _WIN32
-// https://learn.microsoft.com/en-gb/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way
-static void nob__win32_cmd_quote(Nob_Cmd cmd, Nob_String_Builder *quoted)
-{
-    for (size_t i = 0; i < cmd.count; ++i) {
-        const char *arg = cmd.items[i];
-        if (arg == NULL) break;
-        size_t len = strlen(arg);
-        if (i > 0) nob_da_append(quoted, ' ');
-        if (len != 0 && NULL == strpbrk(arg, " \t\n\v\"")) {
-            // no need to quote
-            nob_da_append_many(quoted, arg, len);
-        } else {
-            // we need to escape:
-            // 1. double quotes in the original arg
-            // 2. consequent backslashes before a double quote
-            size_t backslashes = 0;
-            nob_da_append(quoted, '\"');
-            for (size_t j = 0; j < len; ++j) {
-                char x = arg[j];
-                if (x == '\\') {
-                    backslashes += 1;
-                } else {
-                    if (x == '\"') {
-                        // escape backslashes (if any) and the double quote
-                        for (size_t k = 0; k < 1+backslashes; ++k) {
-                            nob_da_append(quoted, '\\');
-                        }
-                    }
-                    backslashes = 0;
-                }
-                nob_da_append(quoted, x);
-            }
-            // escape backslashes (if any)
-            for (size_t k = 0; k < backslashes; ++k) {
-                nob_da_append(quoted, '\\');
-            }
-            nob_da_append(quoted, '\"');
-        }
-    }
-}
-#endif
-
 Nob_Proc nob_cmd_run_async_redirect(Nob_Cmd cmd, Nob_Cmd_Redirect redirect)
 {
     if (cmd.count < 1) {
@@ -962,13 +879,15 @@ Nob_Proc nob_cmd_run_async_redirect(Nob_Cmd cmd, Nob_Cmd_Redirect redirect)
     PROCESS_INFORMATION piProcInfo;
     ZeroMemory(&piProcInfo, sizeof(PROCESS_INFORMATION));
 
-    nob__win32_cmd_quote(cmd, &sb);
+    // TODO: use a more reliable rendering of the command instead of cmd_render
+    // cmd_render is for logging primarily
+    nob_cmd_render(cmd, &sb);
     nob_sb_append_null(&sb);
     BOOL bSuccess = CreateProcessA(NULL, sb.items, NULL, NULL, TRUE, 0, NULL, NULL, &siStartInfo, &piProcInfo);
     nob_sb_free(sb);
 
     if (!bSuccess) {
-        nob_log(NOB_ERROR, "Could not create child process for %s: %s", cmd.items[0], nob_win32_error_message(GetLastError()));
+        nob_log(NOB_ERROR, "Could not create child process: %s", nob_win32_error_message(GetLastError()));
         return NOB_INVALID_PROC;
     }
 
@@ -1011,7 +930,7 @@ Nob_Proc nob_cmd_run_async_redirect(Nob_Cmd cmd, Nob_Cmd_Redirect redirect)
         nob_cmd_append(&cmd_null, NULL);
 
         if (execvp(cmd.items[0], (char * const*) cmd_null.items) < 0) {
-            nob_log(NOB_ERROR, "Could not exec child process for %s: %s", cmd.items[0], strerror(errno));
+            nob_log(NOB_ERROR, "Could not exec child process: %s", strerror(errno));
             exit(1);
         }
         NOB_UNREACHABLE("nob_cmd_run_async_redirect");
@@ -1510,6 +1429,119 @@ const char *nob_temp_sv_to_cstr(Nob_String_View sv)
     return result;
 }
 
+// [ADDIN START]
+bool nob_mkdir_if_not_exists_silent(const char *path) {
+    if(nob_file_exists(path)) return true;
+    return nob_mkdir_if_not_exists(path);
+}
+const char* nob_strltrim(const char* data) {
+    while(data[0] && isspace(data[0])) data++;
+    return data;
+}
+void nob_remove_backslashes(char* data) {
+    char* backslash;
+    // NOTE: Assumes strchr returns NULL on not found
+    while((backslash=strchr(data, '\\'))) {
+        switch(backslash[1]) {
+        case '\n':
+            memmove(backslash, backslash+2, strlen(backslash+2)+1);
+            break;
+        default:
+            memmove(backslash, backslash+1, strlen(backslash+1)+1);
+        }
+        data=backslash;
+    }
+}
+bool nob_dep_analyse_str(char* data, char** result, Nob_File_Paths* paths) {
+    // NOTE: Assumes strchr returns NULL on not found
+    char* result_end = strchr(data, ':');
+    if(!result_end) return false;
+    result_end[0] = '\0';
+    *result = data;
+    data = result_end+1;
+    nob_remove_backslashes(data);
+    char* lineend;
+    if((lineend=strchr(data, '\n')))
+        lineend[0] = '\0'; // Ignore all the stuff after the newline
+    while((data=(char*)nob_strltrim(data))[0]) {
+        char* path=data;
+        while(data[0] && data[0] != ' ') data++;
+        nob_da_append(paths, path);
+        if(data[0]) {
+            data[0] = '\0';
+            data++;
+        }
+    }
+    return true;
+}
+
+const char* nob_get_ext(const char* path) {
+    const char* end = path;
+    while(*end) end++;
+    while(end >= path) {
+        if(*end == '.') return end+1;
+        if(*end == '/' || *end == '\\') break;
+        end--;
+    }
+    return NULL;
+}
+
+bool nob_c_needs_rebuild(Nob_String_Builder* string_buffer, Nob_File_Paths* paths, const char* output_path, const char **input_paths, size_t input_paths_count) {
+    // Reset before usage
+    paths->count = 0;
+    string_buffer->count = 0;
+    size_t temp = nob_temp_save();
+    const char* ext = nob_get_ext(output_path);
+    const char* d_file = 
+        ext ? nob_temp_sprintf("%.*s.d", (int)(ext - output_path - 1), output_path) :
+              nob_temp_sprintf("%s.d", output_path);
+    if(nob_needs_rebuild(d_file, input_paths, input_paths_count) != 0) {
+        nob_temp_rewind(temp);
+        return true;
+    }
+    if(!nob_read_entire_file(d_file, string_buffer)) {
+        nob_temp_rewind(temp);
+        return true;
+    }
+    nob_da_append(string_buffer, '\0');
+    char* obj;
+    if(!nob_dep_analyse_str(string_buffer->items, &obj, paths)) {
+        nob_temp_rewind(temp);
+        return true;
+    }
+    NOB_UNUSED(obj);
+    bool res = nob_needs_rebuild(output_path, paths->items, paths->count) != 0;
+    nob_temp_rewind(temp);
+    return res;
+}
+bool nob_c_needs_rebuild1(Nob_String_Builder* string_buffer, Nob_File_Paths* paths, const char* output_path, const char* input_path) {
+    return nob_c_needs_rebuild(string_buffer, paths, output_path, &input_path, 1);
+}
+char* nob_temp_realpath(const char* path) {
+#if _WIN32
+    size_t temp = nob_temp_save();
+    char* buf = nob_temp_alloc(MAX_PATH);
+    if(!buf) return NULL;
+    if(_fullpath(buf, path, MAX_PATH) == NULL) {
+        nob_temp_rewind(temp);
+        nob_log(NOB_ERROR, "Could not realpath on %s: %s", path, strerror(errno));
+        return NULL;
+    }
+    return buf;
+#else
+    size_t temp = nob_temp_save();
+    char* buf = nob_temp_alloc(PATH_MAX);
+    if(!buf) return NULL;
+    if(!realpath(path, buf)) {
+        nob_temp_rewind(temp);
+        nob_log(NOB_ERROR, "Could not realpath on %s: %s", path, strerror(errno));
+        return NULL;
+    }
+    return buf;
+#endif
+}
+// [ADDIN END]
+
 int nob_needs_rebuild(const char *output_path, const char **input_paths, size_t input_paths_count)
 {
 #ifdef _WIN32
@@ -1662,7 +1694,7 @@ int nob_sb_appendf(Nob_String_Builder *sb, const char *fmt, ...)
     nob_da_reserve(sb, sb->count + n + 1);
     char *dest = sb->items + sb->count;
     va_start(args, fmt);
-    vsnprintf(dest, n+1, fmt, args);
+    vsprintf(dest, fmt, args);
     va_end(args);
 
     sb->count += n;
@@ -2014,8 +2046,7 @@ int closedir(DIR *dirp)
         #define temp_save nob_temp_save
         #define temp_rewind nob_temp_rewind
         #define path_name nob_path_name
-        // NOTE: rename(2) is widely known POSIX function. We never wanna collide with it.
-        // #define rename nob_rename
+        #define rename nob_rename
         #define needs_rebuild nob_needs_rebuild
         #define needs_rebuild1 nob_needs_rebuild1
         #define file_exists nob_file_exists
@@ -2041,13 +2072,6 @@ int closedir(DIR *dirp)
 /*
    Revision history:
 
-     1.20.6 (2025-05-16) Never strip nob_* suffix from nob_rename (By @rexim)
-     1.20.5 (2025-05-16) NOB_PRINTF_FORMAT() support for MinGW (By @KillerxDBr)
-     1.20.4 (2025-05-16) More reliable rendering of the Windows command (By @vylsaz)
-     1.20.3 (2025-05-16) Add check for __clang__ along with _MSC_VER checks (By @nashiora)
-     1.20.2 (2025-04-24) Report the program name that failed to start up in nob_cmd_run_async_redirect() (By @rexim)
-     1.20.1 (2025-04-16) Use vsnprintf() in nob_sb_appendf() instead of vsprintf() (By @LainLayer)
-     1.20.0 (2025-04-16) Introduce nob_cc(), nob_cc_flags(), nob_cc_inputs(), nob_cc_output() macros (By @rexim)
      1.19.0 (2025-03-25) Add nob_procs_append_with_flush() (By @rexim and @anion155)
      1.18.0 (2025-03-24) Add nob_da_foreach() (By @rexim)
                          Allow file sizes greater than 2GB to be read on windows (By @satchelfrost and @KillerxDBr)
