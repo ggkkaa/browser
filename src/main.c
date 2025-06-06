@@ -65,6 +65,8 @@ int html_parse_next_tag(const char* content, HTMLTag* tag, char** end) {
     *end = (char*)content;
     return 0;
 }
+
+//TODO: Handle html comments `<!-- html comment!-->` because it cannot load title in motherfuckingwebsite.html
 void dump_html_tag(HTMLTag* tag, size_t indent) {
     if(tag->name) {
         if(tag->name_len == 5 && strncmp(tag->name, "style", 5) == 0) return;
@@ -134,13 +136,18 @@ HTMLTag* find_child_html_tag(HTMLTag* tag, const char* name) {
     }
     return NULL;
 }
-int main(void) {
-    // TODO: Unhardcode this sheizung
-    const char* example_path = 
-        // "examples/barebones.html"
-        "examples/motherfuckingwebsite.html"
-        // "examples/blockquote.html"
-        ;
+
+int main(int argc, char** argv) {
+    const char* example_path;
+
+    if(argc > 1) {
+        example_path = (char*)argv[1];
+    }
+    else{
+        fprintf(stderr, "Provide filepath\n");
+        return 1;
+    }
+    
     size_t content_size;
     char* content_data = (char*)read_entire_file(example_path, &content_size);
     char* content = content_data;

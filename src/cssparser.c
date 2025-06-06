@@ -20,6 +20,7 @@ const char* csserr_str(int err) {
 #define CSS_MALLOC malloc
 #define CSS_FREE(ptr) (free(ptr))
 
+//TODO: trim comments `/* css comment */`
 char* trim_left(char* cur){
     char *out_cur = cur;
     while(isspace(*out_cur) != 0) out_cur++;
@@ -44,9 +45,10 @@ int parse_css_attr(const char* content, char** content_end, CSSAttr* outAttr){
     char* value_content = cur;
     size_t value_len = 0;
 
-    while(*cur != '\r' && *cur != '\n') cur++;
+    while(*cur != ';') cur++;
     if(*(cur+1) == 0) return -CSSERR_EOF;
     value_len = cur - value_content;
+    cur++;
 
     outAttr->name_content = name_content;
     outAttr->name_len = name_len;
@@ -95,6 +97,21 @@ int parse_css_file(const char* content, CSSNodes* outNodes){
 
     int result = 0;
     while(*cur != '\0'){
+        result = parse_css_node(cur, &cur, &node);
+        if(result < 0) return result;
+        da_push(outNodes, node);
+    }
+
+    return 0;
+}
+
+int parse_css_buffer(const char* content, size_t size, CSSNodes* outNodes){
+    char* cur = (char*)content;
+    CSSNode node = {0};
+
+    int result = 0;
+    while(cur < content+size){
+        if(*cur == '\0') return -CSSERR_EOF;
         result = parse_css_node(cur, &cur, &node);
         if(result < 0) return result;
         da_push(outNodes, node);

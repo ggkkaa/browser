@@ -26,6 +26,7 @@ typedef struct {
     size_t len,cap;
 } CSSNodes;
 
+int parse_css_buffer(const char* content, size_t size, CSSNodes* outNodes);
 int parse_css_file(const char* content, CSSNodes* outNodes);
 
 enum {
