@@ -18,8 +18,10 @@ typedef struct {
     size_t len, cap;
 } HTMLAttributes;
 struct HTMLAttribute {
-    char *key, *val; // val is NULL if it has no value
-    int key_len, val_len;
+    char* key;
+    size_t key_len;
+    char* val; // val is NULL if it has no value
+    size_t val_len;
 };
 typedef struct HTMLTag HTMLTag;
 typedef struct {
@@ -89,8 +91,8 @@ void dump_attributes(HTMLTag* tag) {
     for (size_t i = 0; i < tag->attributes.len; i++) {
         HTMLAttribute *attr = tag->attributes.items[i];
         printf("Tag: key(%.*s)->val(%.*s)\n",
-                attr->key_len, attr->key,
-                attr->val_len, attr->val
+                (int)attr->key_len, attr->key,
+                (int)attr->val_len, attr->val
         );
     }
 }
