@@ -35,6 +35,7 @@ typedef struct {
     size_t len, cap;
 } CSSNodes;
 
+int parse_css_attribute(const char* content, CSSAttribute* out, char** end);
 int parse_css_node(const char* content, CSSNode* out, char** end);
 int parse_css_file(const char* content, CSSNodes* outNodes);
 

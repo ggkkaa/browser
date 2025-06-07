@@ -114,7 +114,7 @@ int expect_special_lexem(const char* content, char ch, char** end){
     return 0;
 }
 
-int parse_css_attr(const char* content, CSSAttribute* out, char** end){
+int parse_css_attribute(const char* content, CSSAttribute* out, char** end){
     char* cur = (char*)content;
     CSSLexem lexem = {0};
     int result = chop_css_lexem(cur,&lexem, &cur);
@@ -173,7 +173,7 @@ int parse_css_node(const char* content, CSSNode* out, char** end){
     CSSAttribute attr = {0};
 
     while(true){
-        result = parse_css_attr(cur, &attr, &cur);
+        result = parse_css_attribute(cur, &attr, &cur);
         if(result == 1) break;
         if(result < 0) {
             CSS_FREE(attrs.items);
