@@ -38,14 +38,14 @@ struct HTMLTag {
 enum {
     HTMLERR_TODO=1,
     HTMLERR_EOF,
-    HTMLERR_INVATTR,
+    HTMLERR_INVALID_ATTRIBUTE,
     HTMLERR_COUNT,
 };
 static_assert(HTMLERR_COUNT == 4, "Update htmlerr_strtab");
 const char* htmlerr_strtab[] = {
     [HTMLERR_TODO] = "Unimplemented",
     [HTMLERR_EOF]  = "End of File",
-    [HTMLERR_INVATTR]  = "Invalid attribute format",
+    [HTMLERR_INVALID_ATTRIBUTE]  = "Invalid attribute format",
 };
 const char* htmlerr_str(int err) {
     if(err >= 0) return "OK";
@@ -69,10 +69,10 @@ int parse_attribute(const char* content, HTMLAttr* att, const char** end) {
         }
     }
     while (isspace(*content)) content++;
-    if (*content != '=') return -HTMLERR_INVATTR;
+    if (*content != '=') return -HTMLERR_INVALID_ATTRIBUTE;
     content++;
     while (isspace(*content)) content++;
-    if (*content != '"') return -HTMLERR_INVATTR;
+    if (*content != '"') return -HTMLERR_INVALID_ATTRIBUTE;
     content++;
     att->val = (char*)content;
     while(*content && *content != '"') content++;
