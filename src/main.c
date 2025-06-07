@@ -54,21 +54,16 @@ const char* htmlerr_str(int err) {
     return htmlerr_strtab[err];
 }
 
-int parse_attribute(const char* content, HTMLTag* tag, const char** end) {
+int parse_attribute(const char* content, HTMLAttr* att, const char** end) {
     if (*content == ' ') content++;
-    HTMLAttr *att = (HTMLAttr*) malloc(sizeof(HTMLAttr));
     att->key = (char*)content;
     while (*content && *content != ' ' && *content != '=' && *content != '>')
         content++;
     att->key_len = content - att->key;
-
     if (*content == ' ' || *content == '>') {
         while (isspace(*content)) content++;
         if (*content != '=') {
             // it has no value
-            att->val = NULL;
-            att->val_len = 0;
-            da_push(&tag->attributes, att);
             *end = content;
             return 0;
         }
@@ -84,7 +79,6 @@ int parse_attribute(const char* content, HTMLTag* tag, const char** end) {
     if(*content != '"') return -HTMLERR_EOF;
     att->val_len = content - att->val;
     content++;
-    da_push(&tag->attributes, att);
     *end = content;
     return 0;
 }
@@ -114,7 +108,11 @@ int html_parse_next_tag(const char* content, HTMLTag* tag, char** end) {
         while(*content && *content != '>' && *content != ' ') content++;
         while (*content == ' ') {
             int e;
-            if ((e=parse_attribute(content, tag, &content)) < 0) return e;
+            HTMLAttr *att = (HTMLAttr*) malloc(sizeof(HTMLAttr));
+            assert(att && "Just buy more RAM");
+            memset(att, 0, sizeof(*att));
+            if ((e=parse_attribute(content, att, &content)) < 0) return e;
+            da_push(&tag->attributes, att);
         }
         dump_attributes(tag);
         content++;
