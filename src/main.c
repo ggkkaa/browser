@@ -198,20 +198,38 @@ HTMLTag* find_child_html_tag(HTMLTag* tag, const char* name) {
     }
     return NULL;
 }
-
+char* shift_args(int* argc, char*** argv) {
+    return (*argc) <= 0 ? NULL : ((*argc)--, *((*argv)++));
+}
+void help(FILE* sink, const char* exe) {
+    fprintf(sink, "%s <input path>\n", exe);
+}
 int main(int argc, char** argv) {
-    const char* example_path;
+    const char* exe = shift_args(&argc, &argv);
+    const char* example_path = NULL;
 
-    if(argc > 1) {
-        example_path = (char*)argv[1];
+    while(argc) {
+        const char* arg = shift_args(&argc, &argv);
+        if (strcmp(arg, "--help") == 0) {
+            help(stdout, exe);
+            return 0;
+        }
+        else if(!example_path) example_path = arg;
+        else {
+            fprintf(stderr, "ERROR Unexpected argument: `%s`\n", arg);
+            help(stderr, exe);
+            return 1;
+        }
     }
-    else{
-        fprintf(stderr, "Provide filepath\n");
+    if(!example_path) {
+        fprintf(stderr, "ERROR Missing input path!\n");
+        help(stderr, exe);
         return 1;
     }
-    
+
     size_t content_size;
     char* content_data = (char*)read_entire_file(example_path, &content_size);
+    if(!content_data) return 1;
     char* content = content_data;
     bool quirks_mode = true;
     if(!memcmp(content, "<!DOCTYPE html>", 15)) {
