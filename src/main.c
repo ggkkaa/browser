@@ -140,7 +140,7 @@ void dump_html_tag(HTMLTag* tag, size_t indent) {
         printf("\n");
     }
 }
-void render_html_tag(HTMLTag* tag, float fontSize, float* rx, float* ry) {
+void render_html_tag(HTMLTag* tag, Font font, float fontSize, size_t width, float* rx, float* ry) {
     if(tag->name) {
         if(tag->name_len == 5 && strncmp(tag->name, "style", 5) == 0) return;
         if(tag->name_len == 5 && strncmp(tag->name, "title", 5) == 0) return;
@@ -154,12 +154,10 @@ void render_html_tag(HTMLTag* tag, float fontSize, float* rx, float* ry) {
             else {
                 childFontSize = 11.0;
             }
-            render_html_tag(tag->children.items[i], childFontSize, rx, ry);
+            render_html_tag(tag->children.items[i], font, childFontSize, width, rx, ry);
         }
     } else {
-        Font font = GetFontDefault();
         float x = *rx, y = *ry; 
-        size_t width = GetScreenWidth();
         for(size_t i = 0; i < tag->str_content_len; ++i) {
             char c = tag->str_content[i];
             if(isspace(c)) {
@@ -185,6 +183,7 @@ void render_html_tag(HTMLTag* tag, float fontSize, float* rx, float* ry) {
         *ry = y + fontSize;
     }
 }
+
 HTMLTag* find_child_html_tag(HTMLTag* tag, const char* name) {
     if(!tag) return NULL;
     size_t name_len = strlen(name);
@@ -314,7 +313,7 @@ int main(int argc, char** argv) {
         BeginDrawing();
         ClearBackground(RAYWHITE);
         float x = 0, y = scroll_y;
-        render_html_tag(node, 24.0, &x, &y);
+        render_html_tag(node, GetFontDefault(), 24.0, GetScreenWidth(), &x, &y);
         EndDrawing();
     }
     CloseWindow();
