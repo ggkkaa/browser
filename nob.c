@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
         );
         // Actual compilation
         cmd_append(&cmd,
-            "-MD", "-O1", "-c",
+            "-MD", "-O1", "-g", "-c",
             src,
             "-o", out,
         );

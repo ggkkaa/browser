@@ -12,6 +12,15 @@
 #define SCALE 100
 #define WIDTH  W_RATIO*SCALE
 #define HEIGHT H_RATIO*SCALE
+typedef struct HTMLAttr HTMLAttr;
+typedef struct {
+    HTMLAttr** items;
+    size_t len, cap;
+} HTMLAttrs;
+struct HTMLAttr {
+    const char* key;
+    const char* val; // NULL if no value
+};
 typedef struct HTMLTag HTMLTag;
 typedef struct {
     HTMLTag** items;
