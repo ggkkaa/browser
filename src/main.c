@@ -281,7 +281,16 @@ int main(int argc, char** argv) {
         }
     }
     if(node != &root) {
-        fprintf(stderr, "WARN: Some unclosed tags.\n");
+        HTMLTag* ct = node;
+        fprintf(stderr, "WARN: Some unclosed tags:\n");
+        while(ct != &root) {
+            if(!ct->name) {
+                fprintf(stderr, "- <unnamed>\n");
+                continue;
+            }
+            fprintf(stderr, "- %.*s\n", (int)ct->name_len, ct->name);
+            ct = ct->parent;
+        }
     }
     dump_html_tag(node, 0);
 
