@@ -18,8 +18,8 @@ typedef struct {
     size_t len, cap;
 } HTMLAttrs;
 struct HTMLAttr {
-    const char* key;
-    const char* val; // NULL if no value
+    char *key, *val; // val is NULL if it has no value
+    int key_len, val_len;
 };
 typedef struct HTMLTag HTMLTag;
 typedef struct {
@@ -33,22 +33,71 @@ struct HTMLTag {
     HTMLTags children;
     const char* str_content;
     size_t str_content_len;
+    HTMLAttrs attributes;
 };
 enum {
     HTMLERR_TODO=1,
     HTMLERR_EOF,
-    HTMLERR_COUNT
+    HTMLERR_INVATTR,
+    HTMLERR_COUNT,
 };
-static_assert(HTMLERR_COUNT == 3, "Update htmlerr_strtab");
+static_assert(HTMLERR_COUNT == 4, "Update htmlerr_strtab");
 const char* htmlerr_strtab[] = {
     [HTMLERR_TODO] = "Unimplemented",
     [HTMLERR_EOF]  = "End of File",
+    [HTMLERR_INVATTR]  = "Invalid attribute format",
 };
 const char* htmlerr_str(int err) {
     if(err >= 0) return "OK";
     err = -err;
     if(err >= HTMLERR_COUNT) return "Unknown error";
     return htmlerr_strtab[err];
+}
+
+// this parses a single attribute and will move forward `s` by itself.
+int parse_attribute(const char** s, HTMLTag* tag) {
+    if (**s == ' ') (*s)++;
+    HTMLAttr *att = (HTMLAttr*) malloc(sizeof(HTMLAttr));
+    att->key = (char*) *s;
+    att->key_len = 0;
+    while (**s != ' ' && **s != '=' && **s != '>')
+        (*s)++, att->key_len++;
+    if (**s == ' ' || **s == '>') {
+        while (**s == ' ' && **s != '>') (*s)++;
+        if (**s != '=') {
+            // it has no value
+            att->val = NULL;
+            att->val_len = 0;
+            da_push(&tag->attributes, att);
+            return 0;
+        }
+    }
+    while (**s == ' ') (*s)++;
+    if (**s != '=') return -HTMLERR_INVATTR;
+    (*s)++;
+    while (**s == ' ') (*s)++;
+    if (**s != '"') return -HTMLERR_INVATTR;
+    att->val = (char*) ++(*s);
+    // find the end of the attribute value
+    att->val_len = 0;
+    for (; **s != '"'; (*s)++, att->val_len++) {
+        if (**s == '\0') return -HTMLERR_EOF; // the attribute never closes
+    }
+    da_push(&tag->attributes, att);
+    (*s)++;
+    return 0;
+}
+
+void dump_attributes(HTMLTag* tag) {
+    if (!tag->attributes.len) return;
+    printf("Tag has attributes, dump:\n");
+    for (size_t i = 0; i < tag->attributes.len; i++) {
+        HTMLAttr *attr = tag->attributes.items[i];
+        printf("Tag: key(%.*s)->val(%.*s)\n",
+                attr->key_len, attr->key,
+                attr->val_len, attr->val
+        );
+    }
 }
 
 #define STRINGIFY0(x) # x
@@ -61,8 +110,12 @@ int html_parse_next_tag(const char* content, HTMLTag* tag, char** end) {
         while(isalnum(*content)) content++;
         tag->name_len = content - tag->name;
         // For now we skip everything until the >
-        while(*content && *content != '>') content++;
-        // if(*content != '>') todof("parse attributes");
+        while(*content && *content != '>' && *content != ' ') content++;
+        while (*content == ' ') {
+            int e;
+            if ((e=parse_attribute(&content, tag)) < 0) return e;
+        }
+        dump_attributes(tag);
         content++;
         *end = (char*)content;
         return 0;
