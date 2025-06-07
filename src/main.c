@@ -28,6 +28,13 @@ typedef struct {
     HTMLTag** items;
     size_t len, cap;
 } HTMLTags;
+// TODO: refactor this out to CSS
+// and some sort of CSSStyle
+enum {
+    CSSDISPLAY_INLINE,
+    CSSDISPLAY_BLOCK,
+};
+typedef uint32_t CSSDisplay;
 struct HTMLTag {
     HTMLTag* parent;
     const char* name;
@@ -36,6 +43,7 @@ struct HTMLTag {
     const char* str_content;
     size_t str_content_len;
     HTMLAttributes attributes;
+    CSSDisplay display;
     bool self_closing;
     // Box of the tag 
     size_t x, y;
