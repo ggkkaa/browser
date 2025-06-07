@@ -12,12 +12,12 @@
 #define SCALE 100
 #define WIDTH  W_RATIO*SCALE
 #define HEIGHT H_RATIO*SCALE
-typedef struct HTMLAttr HTMLAttr;
+typedef struct HTMLAttribute HTMLAttribute;
 typedef struct {
-    HTMLAttr** items;
+    HTMLAttribute** items;
     size_t len, cap;
-} HTMLAttrs;
-struct HTMLAttr {
+} HTMLAttributes;
+struct HTMLAttribute {
     char *key, *val; // val is NULL if it has no value
     int key_len, val_len;
 };
@@ -33,7 +33,7 @@ struct HTMLTag {
     HTMLTags children;
     const char* str_content;
     size_t str_content_len;
-    HTMLAttrs attributes;
+    HTMLAttributes attributes;
 };
 enum {
     HTMLERR_TODO=1,
@@ -54,7 +54,7 @@ const char* htmlerr_str(int err) {
     return htmlerr_strtab[err];
 }
 
-int parse_attribute(const char* content, HTMLAttr* att, const char** end) {
+int parse_attribute(const char* content, HTMLAttribute* att, const char** end) {
     if (*content == ' ') content++;
     att->key = (char*)content;
     while (*content && *content != ' ' && *content != '=' && *content != '>')
@@ -87,7 +87,7 @@ void dump_attributes(HTMLTag* tag) {
     if (!tag->attributes.len) return;
     printf("Tag has attributes, dump:\n");
     for (size_t i = 0; i < tag->attributes.len; i++) {
-        HTMLAttr *attr = tag->attributes.items[i];
+        HTMLAttribute *attr = tag->attributes.items[i];
         printf("Tag: key(%.*s)->val(%.*s)\n",
                 attr->key_len, attr->key,
                 attr->val_len, attr->val
@@ -108,7 +108,7 @@ int html_parse_next_tag(const char* content, HTMLTag* tag, char** end) {
         while(*content && *content != '>' && *content != ' ') content++;
         while (*content == ' ') {
             int e;
-            HTMLAttr *att = (HTMLAttr*) malloc(sizeof(HTMLAttr));
+            HTMLAttribute *att = (HTMLAttribute*) malloc(sizeof(HTMLAttribute));
             assert(att && "Just buy more RAM");
             memset(att, 0, sizeof(*att));
             if ((e=parse_attribute(content, att, &content)) < 0) return e;
