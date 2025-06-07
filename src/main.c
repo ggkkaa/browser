@@ -54,37 +54,38 @@ const char* htmlerr_str(int err) {
     return htmlerr_strtab[err];
 }
 
-// this parses a single attribute and will move forward `s` by itself.
-int parse_attribute(const char** s, HTMLTag* tag) {
-    if (**s == ' ') (*s)++;
+int parse_attribute(const char* content, HTMLTag* tag, const char** end) {
+    if (*content == ' ') content++;
     HTMLAttr *att = (HTMLAttr*) malloc(sizeof(HTMLAttr));
-    att->key = (char*) *s;
-    att->key_len = 0;
-    while (**s != ' ' && **s != '=' && **s != '>')
-        (*s)++, att->key_len++;
-    if (**s == ' ' || **s == '>') {
-        while (**s == ' ' && **s != '>') (*s)++;
-        if (**s != '=') {
+    att->key = (char*)content;
+    while (*content && *content != ' ' && *content != '=' && *content != '>')
+        content++;
+    att->key_len = content - att->key;
+
+    if (*content == ' ' || *content == '>') {
+        while (isspace(*content)) content++;
+        if (*content != '=') {
             // it has no value
             att->val = NULL;
             att->val_len = 0;
             da_push(&tag->attributes, att);
+            *end = content;
             return 0;
         }
     }
-    while (**s == ' ') (*s)++;
-    if (**s != '=') return -HTMLERR_INVATTR;
-    (*s)++;
-    while (**s == ' ') (*s)++;
-    if (**s != '"') return -HTMLERR_INVATTR;
-    att->val = (char*) ++(*s);
-    // find the end of the attribute value
-    att->val_len = 0;
-    for (; **s != '"'; (*s)++, att->val_len++) {
-        if (**s == '\0') return -HTMLERR_EOF; // the attribute never closes
-    }
+    while (isspace(*content)) content++;
+    if (*content != '=') return -HTMLERR_INVATTR;
+    content++;
+    while (isspace(*content)) content++;
+    if (*content != '"') return -HTMLERR_INVATTR;
+    content++;
+    att->val = (char*)content;
+    while(*content && *content != '"') content++;
+    if(*content != '"') return -HTMLERR_EOF;
+    att->val_len = content - att->val;
+    content++;
     da_push(&tag->attributes, att);
-    (*s)++;
+    *end = content;
     return 0;
 }
 
@@ -113,7 +114,7 @@ int html_parse_next_tag(const char* content, HTMLTag* tag, char** end) {
         while(*content && *content != '>' && *content != ' ') content++;
         while (*content == ' ') {
             int e;
-            if ((e=parse_attribute(&content, tag)) < 0) return e;
+            if ((e=parse_attribute(content, tag, &content)) < 0) return e;
         }
         dump_attributes(tag);
         content++;
