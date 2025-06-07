@@ -57,19 +57,17 @@ const char* htmlerr_str(int err) {
 }
 
 int parse_attribute(const char* content, HTMLAttribute* att, const char** end) {
-    if (*content == ' ') content++;
     att->key = (char*)content;
-    while (*content && *content != ' ' && *content != '=' && *content != '>')
+    while (isalnum(*content) || *content == '_' || *content == '-')
         content++;
     att->key_len = content - att->key;
-    if (*content == ' ' || *content == '>') {
-        while (isspace(*content)) content++;
-        if (*content != '=') {
-            // it has no value
-            *end = content;
-            return 0;
-        }
+    while(isspace(*content)) content++;
+    if (*content != '=') {
+        // it has no value
+        *end = content;
+        return 0;
     }
+    content++;
     while (isspace(*content)) content++;
     if (*content != '=') return -HTMLERR_INVALID_ATTRIBUTE;
     content++;
@@ -106,9 +104,8 @@ int html_parse_next_tag(const char* content, HTMLTag* tag, char** end) {
         tag->name = content;
         while(isalnum(*content)) content++;
         tag->name_len = content - tag->name;
-        // For now we skip everything until the >
-        while(*content && *content != '>' && *content != ' ') content++;
-        while (*content == ' ') {
+        while (*content && *content != '>') {
+            while(isspace(*content)) content++;
             int e;
             HTMLAttribute *att = (HTMLAttribute*) malloc(sizeof(HTMLAttribute));
             assert(att && "Just buy more RAM");
