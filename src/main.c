@@ -20,8 +20,8 @@ typedef struct {
 struct HTMLAttribute {
     char* key;
     size_t key_len;
-    char* val; // val is NULL if it has no value
-    size_t val_len;
+    char* value; // value is NULL if it has no value
+    size_t value_len;
 };
 typedef struct HTMLTag HTMLTag;
 typedef struct {
@@ -76,10 +76,10 @@ int parse_attribute(const char* content, HTMLAttribute* att, const char** end) {
     while (isspace(*content)) content++;
     if (*content != '"') return -HTMLERR_INVALID_ATTRIBUTE;
     content++;
-    att->val = (char*)content;
+    att->value = (char*)content;
     while(*content && *content != '"') content++;
     if(*content != '"') return -HTMLERR_EOF;
-    att->val_len = content - att->val;
+    att->value_len = content - att->value;
     content++;
     *end = content;
     return 0;
@@ -90,9 +90,9 @@ void dump_attributes(HTMLTag* tag) {
     printf("Tag has attributes, dump:\n");
     for (size_t i = 0; i < tag->attributes.len; i++) {
         HTMLAttribute *attr = tag->attributes.items[i];
-        printf("Tag: key(%.*s)->val(%.*s)\n",
+        printf("Tag: key(%.*s)->value(%.*s)\n",
                 (int)attr->key_len, attr->key,
-                (int)attr->val_len, attr->val
+                (int)attr->value_len, attr->value
         );
     }
 }
