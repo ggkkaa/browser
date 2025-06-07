@@ -37,6 +37,9 @@ struct HTMLTag {
     size_t str_content_len;
     HTMLAttributes attributes;
     bool self_closing;
+    // Box of the tag 
+    size_t x, y;
+    size_t width, height;
 };
 enum {
     HTMLERR_TODO=1,
