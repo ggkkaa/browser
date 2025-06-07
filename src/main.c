@@ -382,6 +382,42 @@ int main(int argc, char** argv) {
         memset(tag, 0, sizeof(*tag));
         int e = html_parse_next_tag(content, tag, &content);
         if(
+            (tag->name_len == 7 && memcmp(tag->name, "address", 7) == 0) ||
+            (tag->name_len == 7 && memcmp(tag->name, "article", 7) == 0) ||
+            (tag->name_len == 5 && memcmp(tag->name, "aside", 5) == 0) ||
+            (tag->name_len == 10 && memcmp(tag->name, "blockquote", 10) == 0) ||
+            (tag->name_len == 2 && memcmp(tag->name, "dd", 2) == 0) ||
+            (tag->name_len == 2 && memcmp(tag->name, "dl", 2) == 0) ||
+            (tag->name_len == 2 && memcmp(tag->name, "dt", 2) == 0) ||
+            (tag->name_len == 8 && memcmp(tag->name, "fieldset", 8) == 0) ||
+            (tag->name_len == 10 && memcmp(tag->name, "figcaption", 10) == 0) ||
+            (tag->name_len == 6 && memcmp(tag->name, "figure", 6) == 0) ||
+            (tag->name_len == 6 && memcmp(tag->name, "footer", 6) == 0) ||
+            (tag->name_len == 4 && memcmp(tag->name, "form", 4) == 0) ||
+            (tag->name_len == 2 && memcmp(tag->name, "h1", 2) == 0) ||
+            (tag->name_len == 2 && memcmp(tag->name, "h2", 2) == 0) ||
+            (tag->name_len == 2 && memcmp(tag->name, "h3", 2) == 0) ||
+            (tag->name_len == 2 && memcmp(tag->name, "h4", 2) == 0) ||
+            (tag->name_len == 2 && memcmp(tag->name, "h5", 2) == 0) ||
+            (tag->name_len == 2 && memcmp(tag->name, "h6", 2) == 0) ||
+            (tag->name_len == 6 && memcmp(tag->name, "header", 6) == 0) ||
+            (tag->name_len == 6 && memcmp(tag->name, "hgroup", 6) == 0) ||
+            (tag->name_len == 2 && memcmp(tag->name, "hr", 2) == 0) ||
+            (tag->name_len == 2 && memcmp(tag->name, "li", 2) == 0) ||
+            (tag->name_len == 4 && memcmp(tag->name, "main", 4) == 0) ||
+            (tag->name_len == 3 && memcmp(tag->name, "nav", 3) == 0) ||
+            (tag->name_len == 2 && memcmp(tag->name, "ol", 2) == 0) ||
+            (tag->name_len == 1 && memcmp(tag->name, "p", 1) == 0) ||
+            (tag->name_len == 3 && memcmp(tag->name, "pre", 3) == 0) ||
+            (tag->name_len == 7 && memcmp(tag->name, "section", 7) == 0) ||
+            (tag->name_len == 5 && memcmp(tag->name, "table", 5) == 0) ||
+            (tag->name_len == 2 && memcmp(tag->name, "ul", 2) == 0) ||
+            (tag->name_len == 7 && memcmp(tag->name, "details", 7) == 0) ||
+            (tag->name_len == 6 && memcmp(tag->name, "dialog", 6) == 0) ||
+            (tag->name_len == 7 && memcmp(tag->name, "summary", 7) == 0) ||
+            (tag->name_len == 4 && memcmp(tag->name, "menu", 4) == 0) ||
+            (tag->name_len == 4 && memcmp(tag->name, "tfoot", 5) == 0) ||
+            (tag->name_len == 5 && memcmp(tag->name, "thead", 5) == 0) ||
             (tag->name_len == 3 && memcmp(tag->name, "div", 3) == 0) ||
             (tag->name_len == 4 && memcmp(tag->name, "body", 4) == 0) ||
             (tag->name_len == 4 && memcmp(tag->name, "html", 4) == 0)
