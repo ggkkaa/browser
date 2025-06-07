@@ -245,6 +245,7 @@ int main(int argc, char** argv) {
         if(*content != '>') {
             todof("Unterminated DOCTYPE html");
         }
+        content++;
         quirks_mode = false;
     }
     (void) quirks_mode;
