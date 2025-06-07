@@ -99,7 +99,7 @@ int html_parse_next_tag(const char* content, HTMLTag* tag, char** end) {
     if(*content == '<') {
         content++;
         tag->name = content;
-        while(isalnum(*content)) content++;
+        while(isalnum(*content) || *content == '!' || *content == '-') content++;
         tag->name_len = content - tag->name;
         while (*content && *content != '>') {
             while(isspace(*content)) content++;
@@ -248,11 +248,13 @@ int main(int argc, char** argv) {
         HTMLTag* tag = malloc(sizeof(*tag));
         assert(tag && "Just buy more RAM");
         memset(tag, 0, sizeof(*tag));
-        da_push(&node->children, tag);
-        tag->parent = node; 
         int e = html_parse_next_tag(content, tag, &content);
         if(e == -HTMLERR_EOF) break;
-        if(tag->name) node = tag;
+        tag->parent = node; 
+        if (!tag->name || (tag->name && memcmp(tag->name, "!--", 3))) {
+            da_push(&node->children, tag);
+            if(tag->name) node = tag;
+        }
         if(e != 0) {
             fprintf(stderr, "Failed to parse tag: %s\n", htmlerr_str(e));
             return 1;
