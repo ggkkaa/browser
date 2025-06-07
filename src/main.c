@@ -204,6 +204,17 @@ HTMLTag* find_child_html_tag(HTMLTag* tag, const char* name) {
     }
     return NULL;
 }
+// FIXME: I know strcasecmp exists and we *can* use that on 
+// Unix systems with a flag but for now this is fine
+static int strncmp_ci(const char *restrict s1, const char *restrict s2, size_t max) {
+   while(max && *s1 && *s2 && (tolower(*s1) == tolower(*s2))) {
+        s1++;
+        s2++;
+        max--;
+   }
+   if(max != 0) return ((unsigned char)*s1) - ((unsigned char)*s2);
+   return 0;
+}
 char* shift_args(int* argc, char*** argv) {
     return (*argc) <= 0 ? NULL : ((*argc)--, *((*argv)++));
 }
@@ -238,8 +249,15 @@ int main(int argc, char** argv) {
     if(!content_data) return 1;
     char* content = content_data;
     bool quirks_mode = true;
-    if(!memcmp(content, "<!DOCTYPE html>", 15)) {
-        content += 15;
+    if(strncmp_ci(content, "<!DOCTYPE", 9) == 0) {
+        content += 9;
+        while(isspace(*content)) content++;
+        if(strncmp_ci(content, "html", 4) != 0) todof("Unsupported DOCTYPE: `%.*s`", 4, content);
+        content += 4;
+        while(*content && *content != '>') content++;
+        if(*content != '>') {
+            todof("Unterminated DOCTYPE html");
+        }
         quirks_mode = false;
     }
     (void) quirks_mode;
