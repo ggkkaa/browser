@@ -36,17 +36,20 @@ struct HTMLTag {
     const char* str_content;
     size_t str_content_len;
     HTMLAttributes attributes;
+    bool self_closing;
 };
 enum {
     HTMLERR_TODO=1,
     HTMLERR_EOF,
+    HTMLERR_INVALID_TAG,
     HTMLERR_INVALID_ATTRIBUTE,
     HTMLERR_COUNT,
 };
-static_assert(HTMLERR_COUNT == 4, "Update htmlerr_strtab");
+static_assert(HTMLERR_COUNT == 5, "Update htmlerr_strtab");
 const char* htmlerr_strtab[] = {
     [HTMLERR_TODO] = "Unimplemented",
     [HTMLERR_EOF]  = "End of File",
+    [HTMLERR_INVALID_TAG] = "Invalid tag format",
     [HTMLERR_INVALID_ATTRIBUTE]  = "Invalid attribute format",
 };
 const char* htmlerr_str(int err) {
@@ -101,7 +104,7 @@ int html_parse_next_tag(const char* content, HTMLTag* tag, char** end) {
         tag->name = content;
         while(isalnum(*content) || *content == '!' || *content == '-') content++;
         tag->name_len = content - tag->name;
-        while (*content && *content != '>') {
+        while (*content && *content != '>' && *content != '/') {
             while(isspace(*content)) content++;
             int e;
             HTMLAttribute *att = (HTMLAttribute*) malloc(sizeof(HTMLAttribute));
@@ -110,6 +113,14 @@ int html_parse_next_tag(const char* content, HTMLTag* tag, char** end) {
             if ((e=parse_attribute(content, att, &content)) < 0) return e;
             da_push(&tag->attributes, att);
         }
+        if (*content == '/') {
+            if (content[1] != '>') return -HTMLERR_INVALID_TAG;
+            content += 2;
+            *end = (char*) content;
+            tag->self_closing = true;
+            return 0;
+        }
+        tag->self_closing = false;
         dump_attributes(tag);
         content++;
         *end = (char*)content;
@@ -253,7 +264,7 @@ int main(int argc, char** argv) {
         tag->parent = node; 
         if (!tag->name || (tag->name && memcmp(tag->name, "!--", 3))) {
             da_push(&node->children, tag);
-            if(tag->name) node = tag;
+            if (!tag->self_closing && tag->name) node = tag;
         }
         if(e != 0) {
             fprintf(stderr, "Failed to parse tag: %s\n", htmlerr_str(e));
