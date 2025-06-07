@@ -69,9 +69,6 @@ int parse_attribute(const char* content, HTMLAttribute* att, const char** end) {
     }
     content++;
     while (isspace(*content)) content++;
-    if (*content != '=') return -HTMLERR_INVALID_ATTRIBUTE;
-    content++;
-    while (isspace(*content)) content++;
     if (*content != '"') return -HTMLERR_INVALID_ATTRIBUTE;
     content++;
     att->value = (char*)content;
