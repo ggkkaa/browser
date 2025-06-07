@@ -162,7 +162,10 @@ void render_html_tag(HTMLTag* tag, float fontSize, float* rx, float* ry) {
         size_t width = GetScreenWidth();
         for(size_t i = 0; i < tag->str_content_len; ++i) {
             char c = tag->str_content[i];
-            if(!isgraph(c) && c != ' ') c = '?';
+            if(isspace(c)) {
+                while(i+1 < tag->str_content_len && isspace(tag->str_content[i+1])) i++;
+                c = ' ';
+            } else if (!isgraph(c)) c = '?';
             if(x + fontSize > width) {
                 x = *rx;
                 y += fontSize;
