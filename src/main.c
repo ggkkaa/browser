@@ -83,18 +83,6 @@ int parse_attribute(const char* content, HTMLAttribute* att, const char** end) {
     return 0;
 }
 
-void dump_attributes(HTMLTag* tag) {
-    if (!tag->attributes.len) return;
-    printf("Tag has attributes, dump:\n");
-    for (size_t i = 0; i < tag->attributes.len; i++) {
-        HTMLAttribute *attr = tag->attributes.items[i];
-        printf("Tag: key(%.*s)->value(%.*s)\n",
-                (int)attr->key_len, attr->key,
-                (int)attr->value_len, attr->value
-        );
-    }
-}
-
 #define STRINGIFY0(x) # x
 #define STRINGIFY1(x) STRINGIFY0(x)
 #define todof(...) (fprintf(stderr, "TODO " __FILE__ ":" STRINGIFY1(__LINE__) ":" __VA_ARGS__), abort())
@@ -121,7 +109,6 @@ int html_parse_next_tag(const char* content, HTMLTag* tag, char** end) {
             return 0;
         }
         tag->self_closing = false;
-        dump_attributes(tag);
         content++;
         *end = (char*)content;
         return 0;
