@@ -6,7 +6,18 @@
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>
+#include <stdint.h>
 
+Vector2 MeasureCodepointEx(Font font, int codepoint, float fontSize, float spacing) {
+    size_t index = GetGlyphIndex(font, codepoint);
+    float scaleFactor = fontSize/font.baseSize;
+    return (Vector2){
+        font.glyphs[index].advanceX == 0 ? 
+            ((float)font.recs[index].width*scaleFactor + spacing) :
+            ((float)font.glyphs[index].advanceX*scaleFactor + spacing),
+        fontSize
+    };
+}
 #define W_RATIO 16
 #define H_RATIO 9
 #define SCALE 100
@@ -33,6 +44,8 @@ typedef struct {
 enum {
     CSSDISPLAY_INLINE,
     CSSDISPLAY_BLOCK,
+
+    CSSDISPLAY_COUNT
 };
 typedef uint32_t CSSDisplay;
 struct HTMLTag {
@@ -151,6 +164,88 @@ void dump_html_tag(HTMLTag* tag, size_t indent) {
         printf("\n");
     }
 }
+void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float spacing, size_t* cursor_x, size_t* cursor_y) {
+    size_t new_x = tag->x = *cursor_x;
+    size_t new_y = tag->y = *cursor_y;
+    size_t max_x = 0;
+    size_t max_y = 0;
+    if(tag->name) {
+        printf("%.*s at %zu, %zu\n", (int)tag->name_len, tag->name, new_x, new_y);
+        for(size_t i = 0; i < tag->children.len; ++i) {
+            HTMLTag* child = tag->children.items[i];
+            if(child->display == CSSDISPLAY_BLOCK && tag->display == CSSDISPLAY_INLINE) todof("We do not support block inside inline atm: (parent=%.*s, child=%.*s)\n", (int)tag->name_len, tag->name, (int)child->name_len, child->name);
+            compute_box_html_tag(child, font, fontSize, spacing, &new_x, &new_y);
+            if(child->x + child->width > max_x) max_x = child->x + child->width;
+            if(child->y + child->height > max_y) max_y = child->y + child->height;
+        }
+    } else {
+        // TODO: unhardcode this
+        // Take as parameter
+        float max_width = GetScreenWidth();
+        for(size_t i = 0; i < tag->str_content_len; ++i) {
+            char c = tag->str_content[i];
+            if(isspace(c)) {
+                while(i+1 < tag->str_content_len && isspace(tag->str_content[i+1])) i++;
+                c = ' ';
+            } else if (!isgraph(c)) c = '?';
+            if(new_x + fontSize > max_width) {
+                new_x = tag->x;
+                new_y += fontSize;
+            }
+            Vector2 size = MeasureCodepointEx(font, c, fontSize, spacing);
+            new_x += size.x;
+            if(new_x + size.x > max_x) max_x = new_x + size.x;
+            if(new_y + size.y > max_y) max_y = new_y + size.y;
+        }
+        fprintf(stderr, "(string) new: %zux%zu with: (%zux%zu)\n", new_x, new_y, max_x, max_y);
+    }
+    tag->width = max_x - tag->x;
+    tag->height = max_y - tag->y;
+    static_assert(CSSDISPLAY_COUNT == 2, "Update compute_box_html_tag");
+    switch(tag->display) {
+    case CSSDISPLAY_BLOCK:
+        *cursor_y = max_y;
+        break;
+    case CSSDISPLAY_INLINE:
+        *cursor_x = new_x;
+        break;
+    default:
+        todof("handle display: %d", tag->display);
+    }
+}
+
+static size_t color_n = 0;
+void render_box_html_tag(HTMLTag* tag) {
+    static Color colors[] = {
+        GRAY,     
+        GOLD,     
+        PINK,     
+        SKYBLUE,  
+        RED,      
+        MAROON,   
+        GREEN,    
+        ORANGE,   
+        LIME,     
+        DARKGREEN,
+        BLUE,     
+        DARKBLUE, 
+        PURPLE,   
+        VIOLET,   
+        DARKPURPLE,
+        BEIGE,    
+        BROWN,    
+        DARKBROWN,
+        WHITE,    
+        BLACK,    
+        BLANK,    
+        MAGENTA,  
+        RAYWHITE, 
+    };
+    DrawRectangle(tag->x, tag->y, tag->width, tag->height, colors[color_n++]);
+    for(size_t i = 0; i < tag->children.len; ++i) {
+        render_box_html_tag(tag->children.items[i]);
+    }
+}
 void render_html_tag(HTMLTag* tag, Font font, float fontSize, size_t width, float* rx, float* ry) {
     if(tag->name) {
         if(tag->name_len == 5 && strncmp(tag->name, "style", 5) == 0) return;
@@ -265,6 +360,7 @@ int main(int argc, char** argv) {
     HTMLTag root = { 0 };
     root.name = "\\root";
     root.name_len = strlen(root.name);
+    root.display = CSSDISPLAY_BLOCK;
     HTMLTag* node = &root;
     for(;;) {
         while(isspace(*content)) content++;
@@ -285,6 +381,13 @@ int main(int argc, char** argv) {
         assert(tag && "Just buy more RAM");
         memset(tag, 0, sizeof(*tag));
         int e = html_parse_next_tag(content, tag, &content);
+        if(
+            (tag->name_len == 3 && memcmp(tag->name, "div", 3) == 0) ||
+            (tag->name_len == 4 && memcmp(tag->name, "body", 4) == 0) ||
+            (tag->name_len == 4 && memcmp(tag->name, "html", 4) == 0)
+        ) {
+            tag->display = CSSDISPLAY_BLOCK;
+        }
         if(e == -HTMLERR_EOF) break;
         tag->parent = node; 
         da_push(&node->children, tag);
@@ -323,8 +426,11 @@ int main(int argc, char** argv) {
         scroll_y += GetMouseWheelMove()*6.0;
         BeginDrawing();
         ClearBackground(RAYWHITE);
-        float x = 0, y = scroll_y;
-        render_html_tag(node, GetFontDefault(), 24.0, GetScreenWidth(), &x, &y);
+        if(scroll_y < 0) scroll_y = 0;
+        size_t x = 0, y = scroll_y;
+        color_n = 0;
+        compute_box_html_tag(&root, GetFontDefault(), 24.0, 24.0/10, &x, &y);
+        render_box_html_tag(&root);
         EndDrawing();
     }
     CloseWindow();
