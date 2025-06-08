@@ -192,7 +192,8 @@ void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float spacing
                 c = ' ';
             } else if (!isgraph(c)) c = '?';
             if(new_x + fontSize > max_width) {
-                new_x = tag->x;
+                // TODO: unhardcode this?
+                new_x = 0;// tag->x;
                 new_y += fontSize;
             }
             Vector2 size = MeasureCodepointEx(font, c, fontSize, spacing);
@@ -207,9 +208,11 @@ void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float spacing
     switch(tag->display) {
     case CSSDISPLAY_BLOCK:
         *cursor_y = max_y;
+        *cursor_x = tag->x;
         break;
     case CSSDISPLAY_INLINE:
         *cursor_x = new_x;
+        *cursor_y = new_y;
         break;
     default:
         todof("handle display: %d", tag->display);
@@ -256,7 +259,7 @@ void render_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize
             if(strncmp(tag->name, "h1", 2) == 0) childFontSize = fontSize * 1.0;
             else if(strncmp(tag->name, "h2", 2) == 0) childFontSize = fontSize * 0.83;
             else if(strncmp(tag->name, "h3", 2) == 0) childFontSize = fontSize * 0.75;
-            else if(strncmp(tag->name, "p", 1) == 0) childFontSize = fontSize * 0.66;
+            else if(strncmp(tag->name, "p", 1) == 0 || strncmp(tag->name, "strong", 6) == 0) childFontSize = fontSize * 0.66;
             else if(strncmp(tag->name, "li", 2) == 0) childFontSize = fontSize * 0.5;
             render_html_tag(tag->children.items[i], font, fontSize, childFontSize, spacing, scroll_y);
         }
@@ -271,7 +274,8 @@ void render_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize
 
             Vector2 size = MeasureCodepointEx(font, c, textFontSize, spacing);
             if(x + size.x > tag->x + tag->width) {
-                x = tag->x;
+                //TODO: Unhardcode this?
+                x = 0;// tag->x;
                 y += textFontSize;
             }
             DrawTextCodepoint(font, c, (Vector2){x, y + scroll_y}, textFontSize, BLACK);
@@ -459,7 +463,7 @@ int main(int argc, char** argv) {
     float scroll_y = 0;
     bool show_boxes = false;
     while(!WindowShouldClose()) {
-        scroll_y += GetMouseWheelMove()*6.0;
+        scroll_y += GetMouseWheelMove()*16.0;
         if(IsKeyReleased(KEY_F4)) show_boxes = !show_boxes;
         BeginDrawing();
         ClearBackground(RAYWHITE);
