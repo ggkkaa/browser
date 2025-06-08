@@ -164,7 +164,7 @@ void dump_html_tag(HTMLTag* tag, size_t indent) {
         printf("\n");
     }
 }
-void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float spacing, size_t* cursor_x, size_t* cursor_y) {
+void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize, float spacing, size_t* cursor_x, size_t* cursor_y) {
     size_t new_x = tag->x = *cursor_x;
     size_t new_y = tag->y = *cursor_y;
     size_t max_x = tag->x;
@@ -177,11 +177,19 @@ void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float spacing
                 new_x = tag->x;
                 new_y = max_y;
             }
-            compute_box_html_tag(child, font, fontSize, spacing, &new_x, &new_y);
+            float childFontSize = fontSize;
+            if(strncmp(tag->name, "h1", 2) == 0) childFontSize = fontSize * 1.0;
+            else if(strncmp(tag->name, "h2", 2) == 0) childFontSize = fontSize * 0.83;
+            else if(strncmp(tag->name, "h3", 2) == 0) childFontSize = fontSize * 0.75;
+            else if(strncmp(tag->name, "p", 1) == 0 || strncmp(tag->name, "strong", 6) == 0) childFontSize = fontSize * 0.66;
+            else if(strncmp(tag->name, "li", 2) == 0) childFontSize = fontSize * 0.5;
+            compute_box_html_tag(child, font, fontSize, childFontSize, spacing, &new_x, &new_y);
             if(child->x + child->width > max_x) max_x = child->x + child->width;
             if(child->y + child->height > max_y) max_y = child->y + child->height;
         }
     } else {
+        float x = new_x;
+        float y = new_y;
         // TODO: unhardcode this
         // Take as parameter
         float max_width = GetScreenWidth();
@@ -191,16 +199,18 @@ void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float spacing
                 while(i+1 < tag->str_content_len && isspace(tag->str_content[i+1])) i++;
                 c = ' ';
             } else if (!isgraph(c)) c = '?';
-            if(new_x + fontSize > max_width) {
+            Vector2 size = MeasureCodepointEx(font, c, textFontSize, spacing);
+            if(x + size.x > max_width) {
                 // TODO: unhardcode this?
-                new_x = 0;// tag->x;
-                new_y += fontSize;
+                x = 0;// tag->x;
+                y += textFontSize;
             }
-            Vector2 size = MeasureCodepointEx(font, c, fontSize, spacing);
-            new_x += size.x;
-            if(new_x + size.x > max_x) max_x = new_x + size.x;
-            if(new_y + size.y > max_y) max_y = new_y + size.y;
+            x += size.x;
+            if(x + size.x > max_x) max_x = x + size.x;
+            if(y + size.y > max_y) max_y = y + size.y;
         }
+        new_x = x;
+        new_y = y;
     }
     tag->width = max_x - tag->x;
     tag->height = max_y - tag->y;
@@ -469,7 +479,7 @@ int main(int argc, char** argv) {
         ClearBackground(RAYWHITE);
         size_t x = 0, y = 0;
         color_n = 0;
-        compute_box_html_tag(&root, font, fontSize, spacing, &x, &y);
+        compute_box_html_tag(&root, font, fontSize, fontSize, spacing, &x, &y);
         if(show_boxes) render_box_html_tag(&root, scroll_y);
         render_html_tag(&root, font, fontSize, fontSize, spacing, scroll_y);
         EndDrawing();
