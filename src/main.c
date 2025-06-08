@@ -60,8 +60,7 @@ enum {
 typedef uint32_t CSSDisplay;
 struct HTMLTag {
     HTMLTag* parent;
-    const char* name;
-    size_t name_len;
+    Atom* name;
     HTMLTags children;
     const char* str_content;
     size_t str_content_len;
@@ -120,12 +119,16 @@ int parse_attribute(const char* content, HTMLAttribute* att, const char** end) {
 #define STRINGIFY0(x) # x
 #define STRINGIFY1(x) STRINGIFY0(x)
 #define todof(...) (fprintf(stderr, "TODO " __FILE__ ":" STRINGIFY1(__LINE__) ":" __VA_ARGS__), abort())
-int html_parse_next_tag(const char* content, HTMLTag* tag, char** end) {
+int html_parse_next_tag(AtomTable* atom_table, const char* content, HTMLTag* tag, char** end) {
     if(*content == '<') {
         content++;
-        tag->name = content;
+        const char* name = content;
         while(isalnum(*content)) content++;
-        tag->name_len = content - tag->name;
+        tag->name = atom_table_get(atom_table, name, content-name);
+        if(!tag->name) {
+            tag->name = atom_new(name, content - name);
+            assert(atom_table_insert(atom_table, tag->name) && "Just buy more RAM");
+        }
         while (*content && *content != '>' && *content != '/') {
             while(isspace(*content)) content++;
             int e;
@@ -158,12 +161,12 @@ int html_parse_next_tag(const char* content, HTMLTag* tag, char** end) {
 //TODO: Handle html comments `<!-- html comment!-->` because it cannot load title in motherfuckingwebsite.html
 void dump_html_tag(HTMLTag* tag, size_t indent) {
     if(tag->name) {
-        if(tag->name_len == 5 && strncmp(tag->name, "style", 5) == 0) return;
-        printf("%*s<%.*s>\n", (int)indent, "", (int)tag->name_len, tag->name);
+        if(tag->name->len == 5 && strncmp(tag->name->data, "style", 5) == 0) return;
+        printf("%*s<%.*s>\n", (int)indent, "", (int)tag->name->len, tag->name->data);
         for(size_t i = 0; i < tag->children.len; ++i) {
             dump_html_tag(tag->children.items[i], indent + 4);
         }
-        printf("%*s</%.*s>\n", (int)indent, "", (int)tag->name_len, tag->name);
+        printf("%*s</%.*s>\n", (int)indent, "", (int)tag->name->len, tag->name->data);
     } else {
         printf("%*s", (int)indent, "");
         for(size_t i = 0; i < tag->str_content_len; ++i) {
@@ -180,23 +183,23 @@ void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float textFon
     size_t max_x = tag->x;
     size_t max_y = tag->y;
     if(tag->name &&
-        (tag->name_len != 5 || strncmp(tag->name, "style", 5) != 0) &&
-        (tag->name_len != 5 || strncmp(tag->name, "title", 5) != 0)
+        (tag->name->len != 5 || strncmp(tag->name->data, "style", 5) != 0) &&
+        (tag->name->len != 5 || strncmp(tag->name->data, "title", 5) != 0)
     )
     {
         for(size_t i = 0; i < tag->children.len; ++i) {
             HTMLTag* child = tag->children.items[i];
-            // if(child->display == CSSDISPLAY_BLOCK && tag->display == CSSDISPLAY_INLINE) todof("We do not support block inside inline atm: (parent=%.*s, child=%.*s)\n", (int)tag->name_len, tag->name, (int)child->name_len, child->name);
+            // if(child->display == CSSDISPLAY_BLOCK && tag->display == CSSDISPLAY_INLINE) todof("We do not support block inside inline atm: (parent=%.*s, child=%.*s)\n", (int)tag->name->len, tag->name, (int)child->name->len, child->name);
             if(child->display == CSSDISPLAY_BLOCK) {
                 new_x = tag->x;
                 new_y = max_y;
             }
             float childFontSize = fontSize;
-            if(strncmp(tag->name, "h1", 2) == 0) childFontSize = fontSize * 1.0;
-            else if(strncmp(tag->name, "h2", 2) == 0) childFontSize = fontSize * 0.83;
-            else if(strncmp(tag->name, "h3", 2) == 0) childFontSize = fontSize * 0.75;
-            else if(strncmp(tag->name, "p", 1) == 0 || strncmp(tag->name, "strong", 6) == 0) childFontSize = fontSize * 0.66;
-            else if(strncmp(tag->name, "li", 2) == 0) childFontSize = fontSize * 0.5;
+            if(strncmp(tag->name->data, "h1", 2) == 0) childFontSize = fontSize * 1.0;
+            else if(strncmp(tag->name->data, "h2", 2) == 0) childFontSize = fontSize * 0.83;
+            else if(strncmp(tag->name->data, "h3", 2) == 0) childFontSize = fontSize * 0.75;
+            else if(strncmp(tag->name->data, "p", 1) == 0 || strncmp(tag->name->data, "strong", 6) == 0) childFontSize = fontSize * 0.66;
+            else if(strncmp(tag->name->data, "li", 2) == 0) childFontSize = fontSize * 0.5;
             compute_box_html_tag(child, font, fontSize, childFontSize, spacing, &new_x, &new_y);
             if(child->x + child->width > max_x) max_x = child->x + child->width;
             if(child->y + child->height > max_y) max_y = child->y + child->height;
@@ -280,15 +283,15 @@ void render_box_html_tag(HTMLTag* tag, float scroll_y) {
 }
 void render_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize, float spacing, float scroll_y) {
     if(tag->name) {
-        if(tag->name_len == 5 && strncmp(tag->name, "style", 5) == 0) return;
-        if(tag->name_len == 5 && strncmp(tag->name, "title", 5) == 0) return;
+        if(tag->name->len == 5 && strncmp(tag->name->data, "style", 5) == 0) return;
+        if(tag->name->len == 5 && strncmp(tag->name->data, "title", 5) == 0) return;
         for(size_t i = 0; i < tag->children.len; ++i) {
             float childFontSize = fontSize;
-            if(strncmp(tag->name, "h1", 2) == 0) childFontSize = fontSize * 1.0;
-            else if(strncmp(tag->name, "h2", 2) == 0) childFontSize = fontSize * 0.83;
-            else if(strncmp(tag->name, "h3", 2) == 0) childFontSize = fontSize * 0.75;
-            else if(strncmp(tag->name, "p", 1) == 0 || strncmp(tag->name, "strong", 6) == 0) childFontSize = fontSize * 0.66;
-            else if(strncmp(tag->name, "li", 2) == 0) childFontSize = fontSize * 0.5;
+            if(strncmp(tag->name->data, "h1", 2) == 0) childFontSize = fontSize * 1.0;
+            else if(strncmp(tag->name->data, "h2", 2) == 0) childFontSize = fontSize * 0.83;
+            else if(strncmp(tag->name->data, "h3", 2) == 0) childFontSize = fontSize * 0.75;
+            else if(strncmp(tag->name->data, "p", 1) == 0 || strncmp(tag->name->data, "strong", 6) == 0) childFontSize = fontSize * 0.66;
+            else if(strncmp(tag->name->data, "li", 2) == 0) childFontSize = fontSize * 0.5;
             render_html_tag(tag->children.items[i], font, fontSize, childFontSize, spacing, scroll_y);
         }
     } else {
@@ -317,7 +320,7 @@ HTMLTag* find_child_html_tag(HTMLTag* tag, const char* name) {
     size_t name_len = strlen(name);
     for(size_t i = 0; i < tag->children.len; ++i) {
         HTMLTag* child = tag->children.items[i];
-        if(child->name_len == name_len && memcmp(child->name, name, name_len) == 0) return child;
+        if(child->name->len == name_len && memcmp(child->name->data, name, name_len) == 0) return child;
     }
     return NULL;
 }
@@ -380,8 +383,9 @@ int main(int argc, char** argv) {
     }
     (void) quirks_mode;
     HTMLTag root = { 0 };
-    root.name = "\\root";
-    root.name_len = strlen(root.name);
+    AtomTable atom_table = { 0 };
+    root.name = atom_new("\\root", 5);
+    assert(atom_table_insert(&atom_table, root.name) && "Just buy more RAM");
     root.display = CSSDISPLAY_BLOCK;
     HTMLTag* node = &root;
     for(;;) {
@@ -402,48 +406,50 @@ int main(int argc, char** argv) {
         HTMLTag* tag = malloc(sizeof(*tag));
         assert(tag && "Just buy more RAM");
         memset(tag, 0, sizeof(*tag));
-        int e = html_parse_next_tag(content, tag, &content);
+        int e = html_parse_next_tag(&atom_table, content, tag, &content);
         if(
-            (tag->name_len == 7 && memcmp(tag->name, "address", 7) == 0) ||
-            (tag->name_len == 7 && memcmp(tag->name, "article", 7) == 0) ||
-            (tag->name_len == 5 && memcmp(tag->name, "aside", 5) == 0) ||
-            (tag->name_len == 10 && memcmp(tag->name, "blockquote", 10) == 0) ||
-            (tag->name_len == 2 && memcmp(tag->name, "br",  2) == 0) ||
-            (tag->name_len == 2 && memcmp(tag->name, "dd", 2) == 0) ||
-            (tag->name_len == 2 && memcmp(tag->name, "dl", 2) == 0) ||
-            (tag->name_len == 2 && memcmp(tag->name, "dt", 2) == 0) ||
-            (tag->name_len == 8 && memcmp(tag->name, "fieldset", 8) == 0) ||
-            (tag->name_len == 10 && memcmp(tag->name, "figcaption", 10) == 0) ||
-            (tag->name_len == 6 && memcmp(tag->name, "figure", 6) == 0) ||
-            (tag->name_len == 6 && memcmp(tag->name, "footer", 6) == 0) ||
-            (tag->name_len == 4 && memcmp(tag->name, "form", 4) == 0) ||
-            (tag->name_len == 2 && memcmp(tag->name, "h1", 2) == 0) ||
-            (tag->name_len == 2 && memcmp(tag->name, "h2", 2) == 0) ||
-            (tag->name_len == 2 && memcmp(tag->name, "h3", 2) == 0) ||
-            (tag->name_len == 2 && memcmp(tag->name, "h4", 2) == 0) ||
-            (tag->name_len == 2 && memcmp(tag->name, "h5", 2) == 0) ||
-            (tag->name_len == 2 && memcmp(tag->name, "h6", 2) == 0) ||
-            (tag->name_len == 6 && memcmp(tag->name, "header", 6) == 0) ||
-            (tag->name_len == 6 && memcmp(tag->name, "hgroup", 6) == 0) ||
-            (tag->name_len == 2 && memcmp(tag->name, "hr", 2) == 0) ||
-            (tag->name_len == 2 && memcmp(tag->name, "li", 2) == 0) ||
-            (tag->name_len == 4 && memcmp(tag->name, "main", 4) == 0) ||
-            (tag->name_len == 3 && memcmp(tag->name, "nav", 3) == 0) ||
-            (tag->name_len == 2 && memcmp(tag->name, "ol", 2) == 0) ||
-            (tag->name_len == 1 && memcmp(tag->name, "p", 1) == 0) ||
-            (tag->name_len == 3 && memcmp(tag->name, "pre", 3) == 0) ||
-            (tag->name_len == 7 && memcmp(tag->name, "section", 7) == 0) ||
-            (tag->name_len == 5 && memcmp(tag->name, "table", 5) == 0) ||
-            (tag->name_len == 2 && memcmp(tag->name, "ul", 2) == 0) ||
-            (tag->name_len == 7 && memcmp(tag->name, "details", 7) == 0) ||
-            (tag->name_len == 6 && memcmp(tag->name, "dialog", 6) == 0) ||
-            (tag->name_len == 7 && memcmp(tag->name, "summary", 7) == 0) ||
-            (tag->name_len == 4 && memcmp(tag->name, "menu", 4) == 0) ||
-            (tag->name_len == 4 && memcmp(tag->name, "tfoot", 5) == 0) ||
-            (tag->name_len == 5 && memcmp(tag->name, "thead", 5) == 0) ||
-            (tag->name_len == 3 && memcmp(tag->name, "div", 3) == 0) ||
-            (tag->name_len == 4 && memcmp(tag->name, "body", 4) == 0) ||
-            (tag->name_len == 4 && memcmp(tag->name, "html", 4) == 0)
+            tag->name &&
+            (
+            (tag->name->len == 7 && memcmp(tag->name->data, "address", 7) == 0) ||
+            (tag->name->len == 7 && memcmp(tag->name->data, "article", 7) == 0) ||
+            (tag->name->len == 5 && memcmp(tag->name->data, "aside", 5) == 0) ||
+            (tag->name->len == 10 && memcmp(tag->name->data, "blockquote", 10) == 0) ||
+            (tag->name->len == 2 && memcmp(tag->name->data, "br",  2) == 0) ||
+            (tag->name->len == 2 && memcmp(tag->name->data, "dd", 2) == 0) ||
+            (tag->name->len == 2 && memcmp(tag->name->data, "dl", 2) == 0) ||
+            (tag->name->len == 2 && memcmp(tag->name->data, "dt", 2) == 0) ||
+            (tag->name->len == 8 && memcmp(tag->name->data, "fieldset", 8) == 0) ||
+            (tag->name->len == 10 && memcmp(tag->name->data, "figcaption", 10) == 0) ||
+            (tag->name->len == 6 && memcmp(tag->name->data, "figure", 6) == 0) ||
+            (tag->name->len == 6 && memcmp(tag->name->data, "footer", 6) == 0) ||
+            (tag->name->len == 4 && memcmp(tag->name->data, "form", 4) == 0) ||
+            (tag->name->len == 2 && memcmp(tag->name->data, "h1", 2) == 0) ||
+            (tag->name->len == 2 && memcmp(tag->name->data, "h2", 2) == 0) ||
+            (tag->name->len == 2 && memcmp(tag->name->data, "h3", 2) == 0) ||
+            (tag->name->len == 2 && memcmp(tag->name->data, "h4", 2) == 0) ||
+            (tag->name->len == 2 && memcmp(tag->name->data, "h5", 2) == 0) ||
+            (tag->name->len == 2 && memcmp(tag->name->data, "h6", 2) == 0) ||
+            (tag->name->len == 6 && memcmp(tag->name->data, "header", 6) == 0) ||
+            (tag->name->len == 6 && memcmp(tag->name->data, "hgroup", 6) == 0) ||
+            (tag->name->len == 2 && memcmp(tag->name->data, "hr", 2) == 0) ||
+            (tag->name->len == 2 && memcmp(tag->name->data, "li", 2) == 0) ||
+            (tag->name->len == 4 && memcmp(tag->name->data, "main", 4) == 0) ||
+            (tag->name->len == 3 && memcmp(tag->name->data, "nav", 3) == 0) ||
+            (tag->name->len == 2 && memcmp(tag->name->data, "ol", 2) == 0) ||
+            (tag->name->len == 1 && memcmp(tag->name->data, "p", 1) == 0) ||
+            (tag->name->len == 3 && memcmp(tag->name->data, "pre", 3) == 0) ||
+            (tag->name->len == 7 && memcmp(tag->name->data, "section", 7) == 0) ||
+            (tag->name->len == 5 && memcmp(tag->name->data, "table", 5) == 0) ||
+            (tag->name->len == 2 && memcmp(tag->name->data, "ul", 2) == 0) ||
+            (tag->name->len == 7 && memcmp(tag->name->data, "details", 7) == 0) ||
+            (tag->name->len == 6 && memcmp(tag->name->data, "dialog", 6) == 0) ||
+            (tag->name->len == 7 && memcmp(tag->name->data, "summary", 7) == 0) ||
+            (tag->name->len == 4 && memcmp(tag->name->data, "menu", 4) == 0) ||
+            (tag->name->len == 4 && memcmp(tag->name->data, "tfoot", 5) == 0) ||
+            (tag->name->len == 5 && memcmp(tag->name->data, "thead", 5) == 0) ||
+            (tag->name->len == 3 && memcmp(tag->name->data, "div", 3) == 0) ||
+            (tag->name->len == 4 && memcmp(tag->name->data, "body", 4) == 0) ||
+            (tag->name->len == 4 && memcmp(tag->name->data, "html", 4) == 0))
         ) {
             tag->display = CSSDISPLAY_BLOCK;
         }
@@ -464,7 +470,7 @@ int main(int argc, char** argv) {
                 fprintf(stderr, "- <unnamed>\n");
                 continue;
             }
-            fprintf(stderr, "- %.*s\n", (int)ct->name_len, ct->name);
+            fprintf(stderr, "- %.*s\n", (int)ct->name->len, ct->name->data);
             ct = ct->parent;
         }
     }
