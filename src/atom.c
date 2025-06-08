@@ -54,7 +54,7 @@ bool atom_table_insert(AtomTable* map, Atom* atom) {
     bucket->atom = atom;
     map->buckets.items[hash] = bucket;
     map->len++;
-    return bucket;
+    return true;
 }
 Atom* atom_table_get(AtomTable* map, const char* data, size_t data_len) {
     if(map->len == 0) return NULL;
