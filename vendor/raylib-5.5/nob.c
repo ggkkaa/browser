@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
         da_append(&object_files, output_path);
 
         if (needs_rebuild(output_path, &input_path, 1)) {
-            cmd_append(&cmd, "cc",
+            cmd_append(&cmd, cc,
                 "-ggdb", "-DPLATFORM_DESKTOP", "-D_GLFW_X11", "-fPIC", "-DSUPPORT_FILEFORMAT_FLAC=1",
                 "-I"RAYLIB_SRC_FOLDER"external/glfw/include",
                 "-c", input_path,
