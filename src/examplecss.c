@@ -5,8 +5,61 @@
 #include <darray.h>
 #include <assert.h>
 #include <ctype.h>
+#include <css.h>
+#include <atom.h>
 
+#define STRINGIFY0(x) # x
+#define STRINGIFY1(x) STRINGIFY0(x)
+#define todof(...) (fprintf(stderr, "TODO " __FILE__ ":" STRINGIFY1(__LINE__) ":" __VA_ARGS__), abort())
 
+int cssmain(void) {
+    const char* example_path = "examples/sample.css";
+    size_t content_size;
+    char* content_data = (char*)read_entire_file(example_path, &content_size);
+    if(!content_data) return 1;
+    const char* content = content_data;
+    AtomTable atom_table = { 0 };
+    for(;;) {
+        content = css_skip(content);
+        if(*content == '\0') break;
+        CSSTag tag;
+        int e;
+        if((e = css_parse_tag(&atom_table, content, (char**)&content, &tag)) < 0) {
+            fprintf(stderr, "ERROR %s\n", csserr_str(e));
+            return 1;
+        }
+        content = css_skip(content);
+        if(*content == ',') todof("Implement coma separated tags");
+        else if(isalnum(*content)) todof("Implement space separated tags (patterns)");
+        else if(*content != '{') { 
+            fprintf(stderr, "Fok you leather man: `%c`\n", *content);
+            return 1;
+        }
+        content++;
+        printf("%s {\n", tag.name->data);
+        for(;;) {
+            content = css_skip(content);
+            if(*content == '}') {
+                content++;
+                break;
+            }
+            CSSAttribute attr = { 0 };
+            e = css_parse_attribute(&atom_table, content, (char**)&content, &attr);
+            if(e < 0) {
+                fprintf(stderr, "ERROR %s\n", csserr_str(e));
+                return 1;
+            }
+            printf("    %s:", attr.name->data);
+            for(size_t i = 0; i < attr.args.len; ++i) {
+                printf(" %.*s", (int)attr.args.items[i].value_len, attr.args.items[i].value);
+            }
+            printf(";\n");
+            // fprintf(stderr, "Attribute: %s\n", attr.name->data);
+        }
+        printf("}\n");
+    }
+    return 0;
+}
 #if 0
 // TODO: update this shit to the newest standard
 #include "cssparser.h"
