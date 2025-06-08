@@ -219,7 +219,7 @@ void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float textFon
     }
     tag->width = max_x - tag->x;
     tag->height = max_y - tag->y;
-    static_assert(CSSDISPLAY_COUNT == 2, "Update compute_box_html_tag");
+    static_assert(CSSDISPLAY_COUNT == 3, "Update compute_box_html_tag");
     switch(tag->display) {
     case CSSDISPLAY_BLOCK:
         *cursor_y = max_y;
