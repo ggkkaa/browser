@@ -457,14 +457,16 @@ int main(int argc, char** argv) {
     }
     SetTargetFPS(60);
     float scroll_y = 0;
+    bool show_boxes = false;
     while(!WindowShouldClose()) {
         scroll_y += GetMouseWheelMove()*6.0;
+        if(IsKeyReleased(KEY_F4)) show_boxes = !show_boxes;
         BeginDrawing();
         ClearBackground(RAYWHITE);
         size_t x = 0, y = 0;
         color_n = 0;
         compute_box_html_tag(&root, font, fontSize, spacing, &x, &y);
-        render_box_html_tag(&root, scroll_y);
+        if(show_boxes) render_box_html_tag(&root, scroll_y);
         render_html_tag(&root, font, fontSize, fontSize, spacing, scroll_y);
         EndDrawing();
     }
