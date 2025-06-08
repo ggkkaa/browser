@@ -388,6 +388,7 @@ int main(int argc, char** argv) {
             (tag->name_len == 7 && memcmp(tag->name, "article", 7) == 0) ||
             (tag->name_len == 5 && memcmp(tag->name, "aside", 5) == 0) ||
             (tag->name_len == 10 && memcmp(tag->name, "blockquote", 10) == 0) ||
+            (tag->name_len == 2 && memcmp(tag->name, "br",  2) == 0) ||
             (tag->name_len == 2 && memcmp(tag->name, "dd", 2) == 0) ||
             (tag->name_len == 2 && memcmp(tag->name, "dl", 2) == 0) ||
             (tag->name_len == 2 && memcmp(tag->name, "dt", 2) == 0) ||
