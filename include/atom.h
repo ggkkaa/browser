@@ -13,7 +13,7 @@ struct AtomTableBucket {
     AtomTableBucket* next;
     Atom* atom;
 };
-typedef struct {
+typedef struct AtomTable {
     struct {
         AtomTableBucket **items;
         size_t len;
