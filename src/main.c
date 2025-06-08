@@ -454,6 +454,7 @@ int main(int argc, char** argv) {
 
     HTMLTag* html = find_child_html_tag(&root, "html");
     HTMLTag* head = find_child_html_tag(html, "head");
+    HTMLTag* body = find_child_html_tag(html, "body");
     HTMLTag* title = find_child_html_tag(head, "title");
     const char* window_title = "Bikeshed";
     if(title && title->children.len && !title->children.items[0]->name) {
@@ -479,9 +480,9 @@ int main(int argc, char** argv) {
         ClearBackground(RAYWHITE);
         size_t x = 0, y = 0;
         color_n = 0;
-        compute_box_html_tag(&root, font, fontSize, fontSize, spacing, &x, &y);
-        if(show_boxes) render_box_html_tag(&root, scroll_y);
-        render_html_tag(&root, font, fontSize, fontSize, spacing, scroll_y);
+        compute_box_html_tag(body, font, fontSize, fontSize, spacing, &x, &y);
+        if(show_boxes) render_box_html_tag(body, scroll_y);
+        render_html_tag(body, font, fontSize, fontSize, spacing, scroll_y);
         EndDrawing();
     }
     CloseWindow();
