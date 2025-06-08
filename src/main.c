@@ -167,13 +167,16 @@ void dump_html_tag(HTMLTag* tag, size_t indent) {
 void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float spacing, size_t* cursor_x, size_t* cursor_y) {
     size_t new_x = tag->x = *cursor_x;
     size_t new_y = tag->y = *cursor_y;
-    size_t max_x = 0;
-    size_t max_y = 0;
-    if(tag->name) {
-        printf("%.*s at %zu, %zu\n", (int)tag->name_len, tag->name, new_x, new_y);
+    size_t max_x = tag->x;
+    size_t max_y = tag->y;
+    if(tag->name && strncmp(tag->name, "title", 4) != 0) {
         for(size_t i = 0; i < tag->children.len; ++i) {
             HTMLTag* child = tag->children.items[i];
-            if(child->display == CSSDISPLAY_BLOCK && tag->display == CSSDISPLAY_INLINE) todof("We do not support block inside inline atm: (parent=%.*s, child=%.*s)\n", (int)tag->name_len, tag->name, (int)child->name_len, child->name);
+            // if(child->display == CSSDISPLAY_BLOCK && tag->display == CSSDISPLAY_INLINE) todof("We do not support block inside inline atm: (parent=%.*s, child=%.*s)\n", (int)tag->name_len, tag->name, (int)child->name_len, child->name);
+            if(child->display == CSSDISPLAY_BLOCK) {
+                new_x = tag->x;
+                new_y = max_y;
+            }
             compute_box_html_tag(child, font, fontSize, spacing, &new_x, &new_y);
             if(child->x + child->width > max_x) max_x = child->x + child->width;
             if(child->y + child->height > max_y) max_y = child->y + child->height;
