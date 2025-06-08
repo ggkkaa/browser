@@ -20,7 +20,7 @@ Vector2 MeasureCodepointEx(Font font, int codepoint, float fontSize, float spaci
 }
 #include <atom.h>
 #include <atom_set.h>
-Atom* atom_new(const char* data, size_t n) {
+static Atom* atom_new(const char* data, size_t n) {
     Atom* atom = malloc(sizeof(*atom) + n + 1);
     assert(atom && "Just buy more RAM");
     atom->len = n;
@@ -28,7 +28,7 @@ Atom* atom_new(const char* data, size_t n) {
     atom->data[n] = '\0';
     return atom;
 }
-Atom* atom_new_cstr(const char* data) {
+static Atom* atom_new_cstr(const char* data) {
     return atom_new(data, strlen(data));
 }
 #define W_RATIO 16
