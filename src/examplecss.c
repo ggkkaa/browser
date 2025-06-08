@@ -6,8 +6,10 @@
 #include <assert.h>
 #include <ctype.h>
 
-#include "cssparser.h"
 
+#if 0
+// TODO: update this shit to the newest standard
+#include "cssparser.h"
 int cssmain(){
     const char* example_path = "examples/sample.css";
     size_t content_size;
@@ -40,3 +42,4 @@ int cssmain(){
 
     return 0;
 }
+#endif
