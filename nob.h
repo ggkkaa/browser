@@ -1447,7 +1447,7 @@ void nob_remove_backslashes(char* data) {
             memmove(backslash, backslash+2, strlen(backslash+2)+1);
             break;
         default:
-            data[0] = '/';
+            memmove(backslash, backslash+1, strlen(backslash+1)+1);
         }
         data=backslash;
     }
