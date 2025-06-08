@@ -1,0 +1,107 @@
+#include <css.h>
+#include <ctype.h>
+#include <string.h>
+#include <assert.h>
+#include <darray.h>
+
+static_assert(CSSERR_COUNT == 5, "Update csserr_strtab");
+static const char* csserr_strtab[] = {
+    [CSSERR_EOF] = "End of File",
+    [CSSERR_INVALID_TAG_NAME] = "Invalid tag name",
+    [CSSERR_INVALID_ATTRIBUTE_SYNTAX] = "Invalid attribute syntax",
+    [CSSERR_INVALID_ARG_SYNTAX] = "Invalid argument syntax",
+};
+const char* csserr_str(int err) {
+    if(err >= 0) return "OK";
+    err = -err;
+    if(err >= CSSERR_COUNT) return "Unknown error";
+    return csserr_strtab[err];
+}
+#include <atom.h>
+#include <stdlib.h>
+static Atom* atom_new(const char* data, size_t n) {
+    Atom* atom = malloc(sizeof(*atom) + n + 1);
+    assert(atom && "Just buy more RAM");
+    atom->len = n;
+    memcpy(atom->data, data, n);
+    atom->data[n] = '\0';
+    return atom;
+}
+// Skip comments and whitespace
+const char* css_skip(const char* content) {
+    for(;;) {
+        while(isspace(*content)) content++;
+        if(content[0] == '/' && content[1] == '*') {
+            content += 2;
+            while(*content && content[0] == '*' && content[1] == '/') content++;
+            if(*content == '\0') break;
+            content += 2;
+            continue;
+        }
+        break;
+    }
+    return content;
+}
+int css_parse_tag(AtomTable* atom_table, const char* content, char** end, CSSTag* tag) {
+    switch(*content) {
+    case '\0': return -CSSERR_EOF;
+    case '#': 
+        content++;
+        tag->kind = CSSTAG_CLASS;
+        break;
+    case '.':
+        content++;
+        tag->kind = CSSTAG_ID;
+        break;
+    default:
+        tag->kind = CSSTAG_TAG;
+        break;
+    }
+    const char* name = content;
+    while(isalnum(*content) || *content == '-' || *content == '_') content++;
+    if(name == content) return -CSSERR_INVALID_TAG_NAME;
+    tag->name = atom_table_get(atom_table, name, content-name);
+    if(!tag->name) {
+        tag->name = atom_new(name, content-name);
+        assert(atom_table_insert(atom_table, tag->name) && "Just buy more RAM");
+    }
+    *end = (char*)content;
+    return 0;
+}
+int css_parse_attribute(AtomTable* atom_table, const char* content, char** end, CSSAttribute* att) {
+    const char* name = content;
+    while(isalnum(*content) || *content == '_' || *content == '-') content++;
+    if(name == content) return -CSSERR_INVALID_ATTRIBUTE_SYNTAX;
+    att->name = atom_table_get(atom_table, name, content-name);
+    if(!att->name) {
+        att->name = atom_new(name, content-name);
+        assert(atom_table_insert(atom_table, att->name) && "Just buy more RAM");
+    }
+    content = css_skip(content);
+    if(*content != ':') return -CSSERR_INVALID_ATTRIBUTE_SYNTAX;
+    content++;
+    for(;;) {
+        content = css_skip(content);
+        CSSArg arg;
+        arg.value = (char*)content;
+        while(*content && !isspace(*content) && (content[0] != '/' || content[1] != '*') && *content != ',' && *content != '}' && *content != ';') content++;
+        if(content == arg.value) return -CSSERR_INVALID_ARG_SYNTAX;
+        arg.value_len = content-arg.value;
+        content = css_skip(content);
+        da_push(&att->args, arg);
+        switch(*content) {
+        case '\0':
+            return -CSSERR_EOF;
+        case ';':
+            content++;
+            *end = (char*)content;
+            return 0;
+        case ',':
+            content++;
+            continue;
+        case '}':
+            *end = (char*)content;
+            return 0;
+        }
+    }
+}
