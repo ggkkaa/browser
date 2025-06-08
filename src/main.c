@@ -18,6 +18,15 @@ Vector2 MeasureCodepointEx(Font font, int codepoint, float fontSize, float spaci
         fontSize
     };
 }
+#include <atom.h>
+Atom* atom_new(const char* data, size_t n) {
+    Atom* atom = malloc(sizeof(*atom) + n + 1);
+    assert(atom && "Just buy more RAM");
+    atom->len = n;
+    memcpy(atom->data, data, n);
+    atom->data[n] = '\0';
+    return atom;
+}
 #define W_RATIO 16
 #define H_RATIO 9
 #define SCALE 100
@@ -495,4 +504,5 @@ int main(int argc, char** argv) {
         EndDrawing();
     }
     CloseWindow();
+    return 0;
 }
