@@ -182,11 +182,7 @@ void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float textFon
     size_t new_y = tag->y = *cursor_y;
     size_t max_x = tag->x;
     size_t max_y = tag->y;
-    if(tag->name &&
-        (tag->name->len != 5 || strncmp(tag->name->data, "style", 5) != 0) &&
-        (tag->name->len != 5 || strncmp(tag->name->data, "title", 5) != 0)
-    )
-    {
+    if(tag->name) {
         for(size_t i = 0; i < tag->children.len; ++i) {
             HTMLTag* child = tag->children.items[i];
             // if(child->display == CSSDISPLAY_BLOCK && tag->display == CSSDISPLAY_INLINE) todof("We do not support block inside inline atm: (parent=%.*s, child=%.*s)\n", (int)tag->name->len, tag->name, (int)child->name->len, child->name);
