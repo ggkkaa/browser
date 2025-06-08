@@ -350,13 +350,14 @@ void help(FILE* sink, const char* exe) {
 int main(int argc, char** argv) {
     const char* exe = shift_args(&argc, &argv);
     const char* example_path = NULL;
+    bool headless = false;
 
     while(argc) {
         const char* arg = shift_args(&argc, &argv);
         if (strcmp(arg, "--help") == 0) {
             help(stdout, exe);
             return 0;
-        }
+        } else if (strcmp(arg, "--headless") == 0) headless = true;
         else if(!example_path) example_path = arg;
         else {
             fprintf(stderr, "ERROR Unexpected argument: `%s`\n", arg);
@@ -486,7 +487,7 @@ int main(int argc, char** argv) {
         }
     }
     dump_html_tag(node, 0);
-
+    if (headless) return 0;
     HTMLTag* html = find_child_html_tag(&root, "html");
     HTMLTag* head = find_child_html_tag(html, "head");
     HTMLTag* body = find_child_html_tag(html, "body");
