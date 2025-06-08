@@ -47,6 +47,14 @@ int main(int argc, char** argv) {
     if(!bindir) bindir = "bin";
     setenv("BINDIR", bindir, 0);
     if(!mkdir_if_not_exists(bindir)) return 1;
+
+    // Building Raylib
+    Cmd cmd = { 0 };
+    cmd_append(&cmd, cc, "-o", "vendor/raylib-5.5/nob", "vendor/raylib-5.5/nob.c", "-I./");
+    if(!cmd_run_sync_and_reset(&cmd)) return 1;
+    cmd_append(&cmd, "vendor/raylib-5.5/nob");
+    if(!cmd_run_sync_and_reset(&cmd)) return 1;
+
     if(!mkdir_if_not_exists(temp_sprintf("%s/bikeshed", bindir))) return 1;
 
 
@@ -60,7 +68,6 @@ int main(int argc, char** argv) {
     File_Paths objs = { 0 };
     String_Builder stb = { 0 };
     File_Paths pathb = { 0 };
-    Cmd cmd = { 0 };
     for(size_t i = 0; i < c_sources.count; ++i) {
         const char* src = c_sources.items[i];
         const char* out = temp_sprintf("%s/bikeshed/%.*s.o", bindir, (int)(strlen(src + src_prefix_len)-2), src + src_prefix_len);
@@ -78,7 +85,7 @@ int main(int argc, char** argv) {
         );
         // Include directories 
         cmd_append(&cmd,
-            "-I", "vendor/raylib/raylib-5.5_linux_amd64/include",
+            "-I", "vendor/raylib-5.5/src",
             "-I", "include",
         );
         // Actual compilation
@@ -95,7 +102,7 @@ int main(int argc, char** argv) {
         da_append_many(&cmd, objs.items, objs.count);
         // Vendor libraries we link with
         cmd_append(&cmd, 
-            "-Lvendor/raylib/raylib-5.5_linux_amd64/lib",
+            "-Lbin/raylib",
             "-l:libraylib.a"
         );
         cmd_append(&cmd, "-lm");
