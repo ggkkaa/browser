@@ -19,6 +19,7 @@ Vector2 MeasureCodepointEx(Font font, int codepoint, float fontSize, float spaci
     };
 }
 #include <atom.h>
+#include <atom_set.h>
 Atom* atom_new(const char* data, size_t n) {
     Atom* atom = malloc(sizeof(*atom) + n + 1);
     assert(atom && "Just buy more RAM");
@@ -26,6 +27,9 @@ Atom* atom_new(const char* data, size_t n) {
     memcpy(atom->data, data, n);
     atom->data[n] = '\0';
     return atom;
+}
+Atom* atom_new_cstr(const char* data) {
+    return atom_new(data, strlen(data));
 }
 #define W_RATIO 16
 #define H_RATIO 9
@@ -380,6 +384,54 @@ int main(int argc, char** argv) {
     (void) quirks_mode;
     HTMLTag root = { 0 };
     AtomTable atom_table = { 0 };
+    AtomSet block_elements = { 0 };
+    const char* block_tags[] = {
+        "address",
+        "article",
+        "aside",
+        "blockquote",
+        "br",
+        "dd",
+        "dl",
+        "dt",
+        "fieldset",
+        "figcaption",
+        "figure",
+        "footer",
+        "form",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "header",
+        "hgroup",
+        "hr",
+        "li",
+        "main",
+        "nav",
+        "ol",
+        "p",
+        "pre",
+        "section",
+        "table",
+        "ul",
+        "details",
+        "dialog",
+        "summary",
+        "menu",
+        "tfoot",
+        "thead",
+        "div",
+        "body",
+        "html",
+    };
+    for(size_t i = 0; i < sizeof(block_tags)/sizeof(*block_tags); ++i) {
+        Atom* atom = atom_new_cstr(block_tags[i]);
+        atom_table_insert(&atom_table, atom);
+        atom_set_insert(&block_elements, atom);
+    }
     root.name = atom_new("\\root", 5);
     assert(atom_table_insert(&atom_table, root.name) && "Just buy more RAM");
     root.display = CSSDISPLAY_BLOCK;
@@ -403,50 +455,7 @@ int main(int argc, char** argv) {
         assert(tag && "Just buy more RAM");
         memset(tag, 0, sizeof(*tag));
         int e = html_parse_next_tag(&atom_table, content, tag, &content);
-        if(
-            tag->name &&
-            (
-            (tag->name->len == 7 && memcmp(tag->name->data, "address", 7) == 0) ||
-            (tag->name->len == 7 && memcmp(tag->name->data, "article", 7) == 0) ||
-            (tag->name->len == 5 && memcmp(tag->name->data, "aside", 5) == 0) ||
-            (tag->name->len == 10 && memcmp(tag->name->data, "blockquote", 10) == 0) ||
-            (tag->name->len == 2 && memcmp(tag->name->data, "br",  2) == 0) ||
-            (tag->name->len == 2 && memcmp(tag->name->data, "dd", 2) == 0) ||
-            (tag->name->len == 2 && memcmp(tag->name->data, "dl", 2) == 0) ||
-            (tag->name->len == 2 && memcmp(tag->name->data, "dt", 2) == 0) ||
-            (tag->name->len == 8 && memcmp(tag->name->data, "fieldset", 8) == 0) ||
-            (tag->name->len == 10 && memcmp(tag->name->data, "figcaption", 10) == 0) ||
-            (tag->name->len == 6 && memcmp(tag->name->data, "figure", 6) == 0) ||
-            (tag->name->len == 6 && memcmp(tag->name->data, "footer", 6) == 0) ||
-            (tag->name->len == 4 && memcmp(tag->name->data, "form", 4) == 0) ||
-            (tag->name->len == 2 && memcmp(tag->name->data, "h1", 2) == 0) ||
-            (tag->name->len == 2 && memcmp(tag->name->data, "h2", 2) == 0) ||
-            (tag->name->len == 2 && memcmp(tag->name->data, "h3", 2) == 0) ||
-            (tag->name->len == 2 && memcmp(tag->name->data, "h4", 2) == 0) ||
-            (tag->name->len == 2 && memcmp(tag->name->data, "h5", 2) == 0) ||
-            (tag->name->len == 2 && memcmp(tag->name->data, "h6", 2) == 0) ||
-            (tag->name->len == 6 && memcmp(tag->name->data, "header", 6) == 0) ||
-            (tag->name->len == 6 && memcmp(tag->name->data, "hgroup", 6) == 0) ||
-            (tag->name->len == 2 && memcmp(tag->name->data, "hr", 2) == 0) ||
-            (tag->name->len == 2 && memcmp(tag->name->data, "li", 2) == 0) ||
-            (tag->name->len == 4 && memcmp(tag->name->data, "main", 4) == 0) ||
-            (tag->name->len == 3 && memcmp(tag->name->data, "nav", 3) == 0) ||
-            (tag->name->len == 2 && memcmp(tag->name->data, "ol", 2) == 0) ||
-            (tag->name->len == 1 && memcmp(tag->name->data, "p", 1) == 0) ||
-            (tag->name->len == 3 && memcmp(tag->name->data, "pre", 3) == 0) ||
-            (tag->name->len == 7 && memcmp(tag->name->data, "section", 7) == 0) ||
-            (tag->name->len == 5 && memcmp(tag->name->data, "table", 5) == 0) ||
-            (tag->name->len == 2 && memcmp(tag->name->data, "ul", 2) == 0) ||
-            (tag->name->len == 7 && memcmp(tag->name->data, "details", 7) == 0) ||
-            (tag->name->len == 6 && memcmp(tag->name->data, "dialog", 6) == 0) ||
-            (tag->name->len == 7 && memcmp(tag->name->data, "summary", 7) == 0) ||
-            (tag->name->len == 4 && memcmp(tag->name->data, "menu", 4) == 0) ||
-            (tag->name->len == 4 && memcmp(tag->name->data, "tfoot", 5) == 0) ||
-            (tag->name->len == 5 && memcmp(tag->name->data, "thead", 5) == 0) ||
-            (tag->name->len == 3 && memcmp(tag->name->data, "div", 3) == 0) ||
-            (tag->name->len == 4 && memcmp(tag->name->data, "body", 4) == 0) ||
-            (tag->name->len == 4 && memcmp(tag->name->data, "html", 4) == 0))
-        ) {
+        if(tag->name && atom_set_get(&block_elements, tag->name)) {
             tag->display = CSSDISPLAY_BLOCK;
         }
         if(e == -HTMLERR_EOF) break;
