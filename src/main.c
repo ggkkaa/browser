@@ -491,7 +491,7 @@ int main(int argc, char** argv) {
         window_title = TextFormat("Bikeshed - %.*s", (int)title_str->str_content_len, title_str->str_content);
     }
     InitWindow(WIDTH, HEIGHT, window_title);
-    Font font = LoadFont("/usr/share/fonts/truetype/iosevka/iosevka-bold.ttf");
+    Font font = LoadFont("fonts/iosevka/iosevka-bold.ttf");
     float fontSize = 32.0f;
     float spacing = fontSize*0.1f;
     if (font.texture.id == 0) {
