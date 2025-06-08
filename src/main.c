@@ -43,6 +43,7 @@ typedef struct {
 // and some sort of CSSStyle
 enum {
     CSSDISPLAY_INLINE,
+    CSSDISPLAY_INLINE_BLOCK,
     CSSDISPLAY_BLOCK,
 
     CSSDISPLAY_COUNT
@@ -223,6 +224,10 @@ void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float textFon
     case CSSDISPLAY_INLINE:
         *cursor_x = new_x;
         *cursor_y = new_y;
+        break;
+    case CSSDISPLAY_INLINE_BLOCK:
+        *cursor_x = max_x;
+        *cursor_y = tag->y;
         break;
     default:
         todof("handle display: %d", tag->display);
