@@ -217,7 +217,7 @@ void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float spacing
 }
 
 static size_t color_n = 0;
-void render_box_html_tag(HTMLTag* tag) {
+void render_box_html_tag(HTMLTag* tag, float scroll_y) {
     static Color colors[] = {
         GRAY,     
         GOLD,     
@@ -242,12 +242,12 @@ void render_box_html_tag(HTMLTag* tag) {
         MAGENTA,  
         RAYWHITE, 
     };
-    DrawRectangle(tag->x, tag->y, tag->width, tag->height, colors[color_n++]);
+    DrawRectangle(tag->x, ((float)tag->y) + scroll_y, tag->width, tag->height, colors[color_n++]);
     for(size_t i = 0; i < tag->children.len; ++i) {
-        render_box_html_tag(tag->children.items[i]);
+        render_box_html_tag(tag->children.items[i], scroll_y);
     }
 }
-void render_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize, float spacing) {
+void render_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize, float spacing, float scroll_y) {
     if(tag->name) {
         if(tag->name_len == 5 && strncmp(tag->name, "style", 5) == 0) return;
         if(tag->name_len == 5 && strncmp(tag->name, "title", 5) == 0) return;
@@ -258,7 +258,7 @@ void render_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize
             else if(strncmp(tag->name, "h3", 2) == 0) childFontSize = fontSize * 0.75;
             else if(strncmp(tag->name, "p", 1) == 0) childFontSize = fontSize * 0.66;
             else if(strncmp(tag->name, "li", 2) == 0) childFontSize = fontSize * 0.5;
-            render_html_tag(tag->children.items[i], font, fontSize, childFontSize, spacing);
+            render_html_tag(tag->children.items[i], font, fontSize, childFontSize, spacing, scroll_y);
         }
     } else {
         float x = tag->x, y = tag->y; 
@@ -274,7 +274,7 @@ void render_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize
                 x = tag->x;
                 y += textFontSize;
             }
-            DrawTextCodepoint(font, c, (Vector2){x, y}, textFontSize, BLACK);
+            DrawTextCodepoint(font, c, (Vector2){x, y + scroll_y}, textFontSize, BLACK);
             x += size.x;
         }
     }
@@ -461,12 +461,11 @@ int main(int argc, char** argv) {
         scroll_y += GetMouseWheelMove()*6.0;
         BeginDrawing();
         ClearBackground(RAYWHITE);
-        if(scroll_y < 0) scroll_y = 0;
-        size_t x = 0, y = scroll_y;
+        size_t x = 0, y = 0;
         color_n = 0;
         compute_box_html_tag(&root, font, fontSize, spacing, &x, &y);
-        render_box_html_tag(&root);
-        render_html_tag(&root, font, fontSize, fontSize, spacing);
+        render_box_html_tag(&root, scroll_y);
+        render_html_tag(&root, font, fontSize, fontSize, spacing, scroll_y);
         EndDrawing();
     }
     CloseWindow();
