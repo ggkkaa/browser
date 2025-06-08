@@ -200,7 +200,6 @@ void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float spacing
             if(new_x + size.x > max_x) max_x = new_x + size.x;
             if(new_y + size.y > max_y) max_y = new_y + size.y;
         }
-        fprintf(stderr, "(string) new: %zux%zu with: (%zux%zu)\n", new_x, new_y, max_x, max_y);
     }
     tag->width = max_x - tag->x;
     tag->height = max_y - tag->y;
@@ -248,47 +247,36 @@ void render_box_html_tag(HTMLTag* tag) {
         render_box_html_tag(tag->children.items[i]);
     }
 }
-void render_html_tag(HTMLTag* tag, Font font, float fontSize, size_t width, float* rx, float* ry) {
+void render_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize, float spacing) {
     if(tag->name) {
         if(tag->name_len == 5 && strncmp(tag->name, "style", 5) == 0) return;
         if(tag->name_len == 5 && strncmp(tag->name, "title", 5) == 0) return;
         for(size_t i = 0; i < tag->children.len; ++i) {
             float childFontSize = fontSize;
-            if(strncmp(tag->name, "h1", 2) == 0) childFontSize = 24.0;
-            else if(strncmp(tag->name, "h2", 2) == 0) childFontSize = 20.0;
-            else if(strncmp(tag->name, "h3", 2) == 0) childFontSize = 18.0;
-            else if(strncmp(tag->name, "p", 1) == 0) childFontSize = 12.0;
-            else if(strncmp(tag->name, "li", 2) == 0) childFontSize = 10.0;
-            else {
-                childFontSize = 11.0;
-            }
-            render_html_tag(tag->children.items[i], font, childFontSize, width, rx, ry);
+            if(strncmp(tag->name, "h1", 2) == 0) childFontSize = fontSize * 1.0;
+            else if(strncmp(tag->name, "h2", 2) == 0) childFontSize = fontSize * 0.83;
+            else if(strncmp(tag->name, "h3", 2) == 0) childFontSize = fontSize * 0.75;
+            else if(strncmp(tag->name, "p", 1) == 0) childFontSize = fontSize * 0.66;
+            else if(strncmp(tag->name, "li", 2) == 0) childFontSize = fontSize * 0.5;
+            render_html_tag(tag->children.items[i], font, fontSize, childFontSize, spacing);
         }
     } else {
-        float x = *rx, y = *ry; 
+        float x = tag->x, y = tag->y; 
         for(size_t i = 0; i < tag->str_content_len; ++i) {
             char c = tag->str_content[i];
             if(isspace(c)) {
                 while(i+1 < tag->str_content_len && isspace(tag->str_content[i+1])) i++;
                 c = ' ';
             } else if (!isgraph(c)) c = '?';
-            if(x + fontSize > width) {
-                x = *rx;
-                y += fontSize;
+
+            Vector2 size = MeasureCodepointEx(font, c, textFontSize, spacing);
+            if(x + size.x > tag->x + tag->width) {
+                x = tag->x;
+                y += textFontSize;
             }
-            size_t index = GetGlyphIndex(font, c);
-            Vector2 pos = {
-                x, y
-            };
-            DrawTextCodepoint(font, c, pos, fontSize, BLACK);
-            float scaleFactor = fontSize/font.baseSize;
-            int defaultFontSize = 10;   // Default Font chars height in pixel
-            if (fontSize < defaultFontSize) fontSize = defaultFontSize;
-            int spacing = fontSize/defaultFontSize;
-            if (font.glyphs[index].advanceX == 0) x += ((float)font.recs[index].width*scaleFactor + spacing);
-            else x += ((float)font.glyphs[index].advanceX*scaleFactor + spacing);
+            DrawTextCodepoint(font, c, (Vector2){x, y}, textFontSize, BLACK);
+            x += size.x;
         }
-        *ry = y + fontSize;
     }
 }
 
@@ -459,6 +447,14 @@ int main(int argc, char** argv) {
         window_title = TextFormat("Bikeshed - %.*s", (int)title_str->str_content_len, title_str->str_content);
     }
     InitWindow(WIDTH, HEIGHT, window_title);
+    Font font = LoadFont("/usr/share/fonts/truetype/iosevka/iosevka-bold.ttf");
+    float fontSize = 32.0f;
+    float spacing = fontSize*0.1f;
+    if (font.texture.id == 0) {
+        font = GetFontDefault();
+        fontSize = 24.0f;
+        spacing = fontSize*0.1f;
+    }
     SetTargetFPS(60);
     float scroll_y = 0;
     while(!WindowShouldClose()) {
@@ -468,8 +464,9 @@ int main(int argc, char** argv) {
         if(scroll_y < 0) scroll_y = 0;
         size_t x = 0, y = scroll_y;
         color_n = 0;
-        compute_box_html_tag(&root, GetFontDefault(), 24.0, 24.0/10, &x, &y);
+        compute_box_html_tag(&root, font, fontSize, spacing, &x, &y);
         render_box_html_tag(&root);
+        render_html_tag(&root, font, fontSize, fontSize, spacing);
         EndDrawing();
     }
     CloseWindow();
