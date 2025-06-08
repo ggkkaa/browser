@@ -239,7 +239,6 @@ void render_box_html_tag(HTMLTag* tag) {
         BROWN,    
         DARKBROWN,
         WHITE,    
-        BLACK,    
         BLANK,    
         MAGENTA,  
         RAYWHITE, 
