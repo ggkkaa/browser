@@ -9,5 +9,10 @@ int run_js(char* content) {
         return -HTMLERR_INVALID_JS;
     }
     dump_tokens(toks);
+    ASTBranch ast = {0};
+    if (gen_ast(toks, &ast) < 0) {
+        fprintf(stderr, "Failed to parse JS and generate an AST\n");
+        return -HTMLERR_INVALID_JS;
+    }
     return 0;
 }
