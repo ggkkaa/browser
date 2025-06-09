@@ -14,7 +14,13 @@ typedef struct {
 } JSTokens;
 
 typedef enum {
-    JSInteger, JSPlus, JSMinus, JSMul, JSDiv, JSNewline, JSTokCount,
+    JS_TOK_NEWLINE='\n',
+    JS_TOK_MUL    ='*',
+    JS_TOK_PLUS   ='+',
+    JS_TOK_MINUS  ='-',
+    JS_TOK_DIV    ='/',
+    JS_TOK_INTEGER,
+    JS_TOK_COUNT  ,
 } JSTokType;
 
 struct JSToken {
@@ -23,15 +29,15 @@ struct JSToken {
 };
 
 const char* tok_str_map[] = {
-    [JSInteger] = "Integer",
-    [JSPlus   ] = "Plus"   ,
-    [JSMinus  ] = "Minus"  ,
-    [JSMul    ] = "Mul"    ,
-    [JSDiv    ] = "Div"    ,
-    [JSNewline] = "Integer",
+    [JS_TOK_NEWLINE] = "Integer",
+    [JS_TOK_MUL    ] = "Mul"    ,
+    [JS_TOK_PLUS   ] = "Plus"   ,
+    [JS_TOK_MINUS  ] = "Minus"  ,
+    [JS_TOK_DIV    ] = "Div"    ,
+    [JS_TOK_INTEGER] = "Integer",
 };
 void print_token(JSToken tok) {
-    if (tok.ttype >= JSTokCount) {
+    if (tok.ttype >= JS_TOK_COUNT || !tok.ttype) {
         printf("(InvalidToken)");
         return;
     }
@@ -49,33 +55,17 @@ void dump_tokens(JSTokens toks) {
 
 int tokenise_js(JSTokens* toks, char* content) {
     for (; *content; content++) {
-        switch (*content) {
-        case ' ':
-            continue;
-        case '+':
-            da_push(toks, ((JSToken) { .ttype=JSPlus }));
-            continue;
-        case '-':
-            da_push(toks, ((JSToken) { .ttype=JSMinus }));
-            continue;
-        case '*':
-            da_push(toks, ((JSToken) { .ttype=JSMul }));
-            continue;
-        case '/':
-            da_push(toks, ((JSToken) { .ttype=JSDiv }));
-            continue;
-        case '\n':
-            da_push(toks, ((JSToken) { .ttype=JSNewline }));
-            continue;
-        };
-        if (isdigit(*content)) {
+        char* single_char_toks = "+-*/\n ";
+        if (strchr(single_char_toks, *content)) {
+            da_push(toks, ((JSToken) { .ttype=*content, .val=0 }));
+        } else if (isdigit(*content)) {
             char* start = content;
             for (; isdigit(*content); content++);
             char* end = content;
             char* numstr = strndup(start, (int) (end - start));
             int64_t num = strtoll(numstr, NULL, 10);
             free(numstr);
-            da_push(toks, ((JSToken) { .ttype=JSInteger, .val=(size_t)num }));
+            da_push(toks, ((JSToken) { .ttype=JS_TOK_INTEGER, .val=(size_t)num }));
         } else {
             fprintf(stderr, "invalid JS token: %d\n", *content);
             return -1;
