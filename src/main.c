@@ -138,7 +138,10 @@ int html_parse_next_tag(AtomTable* atom_table, const char* content, HTMLTag* tag
             HTMLAttribute *att = (HTMLAttribute*) malloc(sizeof(HTMLAttribute));
             assert(att && "Just buy more RAM");
             memset(att, 0, sizeof(*att));
-            if ((e=parse_attribute(content, att, &content)) < 0) return e;
+            if ((e=parse_attribute(content, att, &content)) < 0) {
+                free(att);
+                return e;
+            }
             da_push(&tag->attributes, att);
         }
         if (*content == '/') {
