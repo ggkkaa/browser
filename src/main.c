@@ -430,9 +430,24 @@ int main(int argc, char** argv) {
         "html",
     };
     for(size_t i = 0; i < sizeof(block_tags)/sizeof(*block_tags); ++i) {
-        Atom* atom = atom_new_cstr(block_tags[i]);
-        atom_table_insert(&atom_table, atom);
+        Atom* atom = atom_table_get(&atom_table, block_tags[i], strlen(block_tags[i]));
+        if(!atom) {
+            atom = atom_new_cstr(block_tags[i]);
+            atom_table_insert(&atom_table, atom);
+        }
         atom_set_insert(&block_elements, atom);
+    }
+    const char* void_tags[] = {
+        "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"
+    };
+    AtomSet void_elements = { 0 };
+    for(size_t i = 0; i < sizeof(void_tags)/sizeof(*void_tags); ++i) {
+        Atom* atom = atom_table_get(&atom_table, void_tags[i], strlen(void_tags[i]));
+        if(!atom) {
+            atom = atom_new_cstr(void_tags[i]);
+            atom_table_insert(&atom_table, atom);
+        }
+        atom_set_insert(&void_elements, atom);
     }
     root.name = atom_new("\\root", 5);
     assert(atom_table_insert(&atom_table, root.name) && "Just buy more RAM");
@@ -463,7 +478,7 @@ int main(int argc, char** argv) {
         if(e == -HTMLERR_EOF) break;
         tag->parent = node; 
         da_push(&node->children, tag);
-        if (!tag->self_closing && tag->name) node = tag;
+        if (!atom_set_get(&void_elements, tag->name) && !tag->self_closing && tag->name) node = tag;
         if(e != 0) {
             fprintf(stderr, "Failed to parse tag: %s\n", htmlerr_str(e));
             return 1;
