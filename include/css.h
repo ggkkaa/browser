@@ -12,9 +12,9 @@ enum {
     CSSERR_COUNT
 };
 enum {
-    // .foo
-    CSSTAG_ID,
     // #foo
+    CSSTAG_ID,
+    // .foo
     CSSTAG_CLASS,
     // foo
     CSSTAG_TAG,
@@ -38,9 +38,14 @@ typedef struct {
     } args;
 } CSSAttribute;
 typedef struct {
+    CSSAttribute* items;
+    size_t len, cap;
+} CSSAttributes;
+typedef struct {
     CSSTag* items;
     size_t len, cap;
     // TODO: CSSTag inline_buffer[1];
+    CSSAttributes attribute;
 } CSSPattern;
 
 // Skip spaces and comments
