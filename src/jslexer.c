@@ -20,7 +20,6 @@ void print_token(JSToken tok) {
 }
 
 void dump_tokens(JSTokens toks) {
-    printf("Token dump:\n");
     for (size_t i = 0; i < toks.len; i++) {
         print_token(toks.items[i]);
         if (i != toks.len - 1) printf(", ");
@@ -46,6 +45,5 @@ int tokenise_js(JSTokens* toks, char* content) {
             return -1;
         }
     }
-    printf("Tokenising complete.\n");
     return 0;
 }

@@ -19,10 +19,10 @@ int operation_precedence[] = {
 void dump_ast(ASTBranch *ast, int depth) {
     switch (ast->type) {
     case AST_NODE_UNSIGNED_INT:
-        PRINT_SPACES(depth); printf("-> %zu\n", ast->UnsignedInteger.val);
+        PRINT_SPACES(depth); printf("-> UnsignedInteger(%zu)\n", ast->UnsignedInteger.val);
         break;
     case AST_NODE_BINOP:
-        PRINT_SPACES(depth); printf("-> BinOpNode: %c\n", ast->BinOpNode.op);
+        PRINT_SPACES(depth); printf("-> BinOpNode(%c):\n", ast->BinOpNode.op);
         dump_ast(ast->BinOpNode.val1, depth + 4);
         dump_ast(ast->BinOpNode.val2, depth + 4);
         break;

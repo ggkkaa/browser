@@ -8,12 +8,14 @@ int run_js(char* content) {
         fprintf(stderr, "Failed to tokenise JS\n");
         return -HTMLERR_INVALID_JS;
     }
+    printf("Tokenising complete. Token dump:\n");
     dump_tokens(toks);
     ASTBranch ast = {0};
     if (gen_ast(toks, &ast) < 0) {
         fprintf(stderr, "Failed to parse JS and generate an AST\n");
         return -HTMLERR_INVALID_JS;
     }
+    printf("Done parsing. AST dump:\n");
     dump_ast(&ast, 0);
     return 0;
 }
