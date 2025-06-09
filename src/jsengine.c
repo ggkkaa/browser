@@ -14,13 +14,8 @@ typedef struct {
 } JSTokens;
 
 typedef enum {
-    JS_TOK_NEWLINE='\n',
-    JS_TOK_MUL    ='*',
-    JS_TOK_PLUS   ='+',
-    JS_TOK_MINUS  ='-',
-    JS_TOK_DIV    ='/',
-    JS_TOK_INTEGER,
-    JS_TOK_COUNT  ,
+    JS_TOK_INTEGER=256,
+    JS_TOK_COUNT,
 } JSTokType;
 
 struct JSToken {
@@ -29,19 +24,15 @@ struct JSToken {
 };
 
 const char* tok_str_map[] = {
-    [JS_TOK_NEWLINE] = "Integer",
-    [JS_TOK_MUL    ] = "Mul"    ,
-    [JS_TOK_PLUS   ] = "Plus"   ,
-    [JS_TOK_MINUS  ] = "Minus"  ,
-    [JS_TOK_DIV    ] = "Div"    ,
     [JS_TOK_INTEGER] = "Integer",
 };
 void print_token(JSToken tok) {
-    if (tok.ttype >= JS_TOK_COUNT || !tok.ttype) {
+    if (tok.ttype < 256) {
+        if (tok.ttype == '\n') printf("(Newline)");
+        else printf("(%c)", tok.ttype);
+    } else if (tok.ttype >= JS_TOK_COUNT || !tok.ttype) {
         printf("(InvalidToken)");
-        return;
-    }
-    printf("(%s: %zu)", tok_str_map[tok.ttype], tok.val);
+    } else printf("(%s: %zu)", tok_str_map[tok.ttype], tok.val);
 }
 
 void dump_tokens(JSTokens toks) {
