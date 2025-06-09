@@ -47,11 +47,11 @@ int css_parse_tag(AtomTable* atom_table, const char* content, char** end, CSSTag
     case '\0': return -CSSERR_EOF;
     case '#': 
         content++;
-        tag->kind = CSSTAG_CLASS;
+        tag->kind = CSSTAG_ID;
         break;
     case '.':
         content++;
-        tag->kind = CSSTAG_ID;
+        tag->kind = CSSTAG_CLASS;
         break;
     default:
         tag->kind = CSSTAG_TAG;
