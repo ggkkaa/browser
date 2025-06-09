@@ -511,9 +511,11 @@ int main(int argc, char** argv) {
         ClearBackground(RAYWHITE);
         size_t x = 0, y = 0;
         color_n = 0;
-        compute_box_html_tag(body, font, fontSize, fontSize, spacing, &x, &y);
-        if(show_boxes) render_box_html_tag(body, scroll_y);
-        render_html_tag(body, font, fontSize, fontSize, spacing, scroll_y);
+        if(body) {
+            compute_box_html_tag(body, font, fontSize, fontSize, spacing, &x, &y);
+            if(show_boxes) render_box_html_tag(body, scroll_y);
+            render_html_tag(body, font, fontSize, fontSize, spacing, scroll_y);
+        }
         EndDrawing();
     }
     CloseWindow();
