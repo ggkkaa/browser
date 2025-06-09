@@ -77,19 +77,13 @@ struct HTMLTag {
     size_t x, y;
     size_t width, height;
 };
-enum {
-    HTMLERR_TODO=1,
-    HTMLERR_EOF,
-    HTMLERR_INVALID_TAG,
-    HTMLERR_INVALID_ATTRIBUTE,
-    HTMLERR_COUNT,
-};
-static_assert(HTMLERR_COUNT == 5, "Update htmlerr_strtab");
+static_assert(HTMLERR_COUNT == 6, "Update htmlerr_strtab");
 const char* htmlerr_strtab[] = {
     [HTMLERR_TODO] = "Unimplemented",
     [HTMLERR_EOF]  = "End of File",
     [HTMLERR_INVALID_TAG] = "Invalid tag format",
     [HTMLERR_INVALID_ATTRIBUTE]  = "Invalid attribute format",
+    [HTMLERR_INVALID_JS]  = "Invalid JS (see separate error)",
 };
 const char* htmlerr_str(int err) {
     if(err >= 0) return "OK";
