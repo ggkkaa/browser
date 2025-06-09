@@ -14,5 +14,6 @@ int run_js(char* content) {
         fprintf(stderr, "Failed to parse JS and generate an AST\n");
         return -HTMLERR_INVALID_JS;
     }
+    dump_ast(&ast, 0);
     return 0;
 }

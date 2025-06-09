@@ -42,3 +42,4 @@ int tokenise_js(JSTokens* toks, char* content);
 int gen_ast(JSTokens toks, ASTBranch *ast);
 void dump_tokens(JSTokens toks);
 int run_js(char* content);
+void dump_ast(ASTBranch *ast, int depth);
