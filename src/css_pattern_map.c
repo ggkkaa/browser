@@ -31,7 +31,7 @@ bool css_pattern_map_reserve(CSSPatternMap* map, size_t extra) {
     }
     return true;
 }
-bool css_pattern_map_insert(CSSPatternMap* map, Atom* name, CSSPattern pattern) {
+bool css_pattern_map_insert(CSSPatternMap* map, Atom* name, CSSPatterns patterns) {
     if(!css_pattern_map_reserve(map, 1)) return false;
     size_t hash = ((size_t)name) % map->buckets.len;
     CSSPatternMapBucket* into = map->buckets.items[hash];
@@ -39,18 +39,18 @@ bool css_pattern_map_insert(CSSPatternMap* map, Atom* name, CSSPattern pattern) 
     if(!bucket) return false;
     bucket->next = into;
     bucket->name = name;
-    bucket->pattern = pattern;
+    bucket->patterns = patterns;
     map->buckets.items[hash] = bucket;
     map->len++;
     return true;
 }
-CSSPattern* css_pattern_map_get(CSSPatternMap* map, Atom* name) {
+CSSPatterns* css_pattern_map_get(CSSPatternMap* map, Atom* name) {
     if(map->len == 0) return NULL;
     assert(map->buckets.len > 0);
     size_t hash = ((size_t)name) % map->buckets.len;
     CSSPatternMapBucket* bucket = map->buckets.items[hash];
     while(bucket) {
-        if(bucket->name == name) return &bucket->pattern;
+        if(bucket->name == name) return &bucket->patterns;
         bucket = bucket->next;
     }
     return NULL;
