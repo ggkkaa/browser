@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <jsengine.h>
+#include <miscutils.h>
 #include <raylib.h>
 #include <fileutils.h>
 #include <string.h>
@@ -126,9 +128,6 @@ int parse_attribute(const char* content, HTMLAttribute* att, const char** end) {
     return 0;
 }
 
-#define STRINGIFY0(x) # x
-#define STRINGIFY1(x) STRINGIFY0(x)
-#define todof(...) (fprintf(stderr, "TODO " __FILE__ ":" STRINGIFY1(__LINE__) ":" __VA_ARGS__), abort())
 int html_parse_next_tag(AtomTable* atom_table, const char* content, HTMLTag* tag, char** end) {
     if(*content == '<') {
         content++;
@@ -351,13 +350,14 @@ int main(int argc, char** argv) {
     const char* exe = shift_args(&argc, &argv);
     const char* example_path = NULL;
     bool headless = false;
-
+    bool rawjs = false;
     while(argc) {
         const char* arg = shift_args(&argc, &argv);
         if (strcmp(arg, "--help") == 0) {
             help(stdout, exe);
             return 0;
         } else if (strcmp(arg, "--headless") == 0) headless = true;
+        else if (strcmp(arg, "--rawjs") == 0) rawjs = true;
         else if(!example_path) example_path = arg;
         else {
             fprintf(stderr, "ERROR Unexpected argument: `%s`\n", arg);
@@ -376,6 +376,7 @@ int main(int argc, char** argv) {
     if(!content_data) return 1;
     char* content = content_data;
     bool quirks_mode = true;
+    if (rawjs) return run_js(content);
     if(strncmp_ci(content, "<!DOCTYPE", 9) == 0) {
         content += 9;
         while(isspace(*content)) content++;
