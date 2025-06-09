@@ -28,12 +28,14 @@ static Atom* atom_new(const char* data, size_t n) {
     return atom;
 }
 // Skip comments and whitespace
-const char* css_skip(const char* content) {
+const char* css_skip(const char* content, const char* content_end) {
     for(;;) {
-        while(isspace(*content)) content++;
-        if(content[0] == '/' && content[1] == '*') {
+        while(content < content_end && isspace(*content)) content++;
+        if(content + 2 < content_end && content[0] == '/' && content[1] == '*') {
             content += 2;
-            while(*content && content[0] == '*' && content[1] == '/') content++;
+            // FIXME: This is technically invalid but I don't care.
+            // Fuck you leather man
+            while(content < content_end && content[0] == '*' && content[1] == '/') content++;
             if(*content == '\0') break;
             content += 2;
             continue;
@@ -42,7 +44,7 @@ const char* css_skip(const char* content) {
     }
     return content;
 }
-int css_parse_tag(AtomTable* atom_table, const char* content, char** end, CSSTag* tag) {
+int css_parse_tag(AtomTable* atom_table, const char* content, const char* content_end, char** end, CSSTag* tag) {
     switch(*content) {
     case '\0': return -CSSERR_EOF;
     case '#': 
@@ -58,7 +60,7 @@ int css_parse_tag(AtomTable* atom_table, const char* content, char** end, CSSTag
         break;
     }
     const char* name = content;
-    while(isalnum(*content) || *content == '-' || *content == '_') content++;
+    while(content < content_end && (isalnum(*content) || *content == '-' || *content == '_')) content++;
     if(name == content) return -CSSERR_INVALID_TAG_NAME;
     tag->name = atom_table_get(atom_table, name, content-name);
     if(!tag->name) {
@@ -68,26 +70,26 @@ int css_parse_tag(AtomTable* atom_table, const char* content, char** end, CSSTag
     *end = (char*)content;
     return 0;
 }
-int css_parse_attribute(AtomTable* atom_table, const char* content, char** end, CSSAttribute* att) {
+int css_parse_attribute(AtomTable* atom_table, const char* content, const char* content_end, char** end, CSSAttribute* att) {
     const char* name = content;
-    while(isalnum(*content) || *content == '_' || *content == '-') content++;
+    while(content < content_end && (isalnum(*content) || *content == '_' || *content == '-')) content++;
     if(name == content) return -CSSERR_INVALID_ATTRIBUTE_SYNTAX;
     att->name = atom_table_get(atom_table, name, content-name);
     if(!att->name) {
         att->name = atom_new(name, content-name);
         assert(atom_table_insert(atom_table, att->name) && "Just buy more RAM");
     }
-    content = css_skip(content);
+    content = css_skip(content, content_end);
     if(*content != ':') return -CSSERR_INVALID_ATTRIBUTE_SYNTAX;
     content++;
     for(;;) {
-        content = css_skip(content);
+        content = css_skip(content, content_end);
         CSSArg arg;
         arg.value = (char*)content;
-        while(*content && !isspace(*content) && (content[0] != '/' || content[1] != '*') && *content != ',' && *content != '}' && *content != ';') content++;
+        while(content < content_end && !isspace(*content) && (content[0] != '/' || content[1] != '*') && *content != ',' && *content != '}' && *content != ';') content++;
         if(content == arg.value) return -CSSERR_INVALID_ARG_SYNTAX;
         arg.value_len = content-arg.value;
-        content = css_skip(content);
+        content = css_skip(content, content_end);
         da_push(&att->args, arg);
         switch(*content) {
         case '\0':

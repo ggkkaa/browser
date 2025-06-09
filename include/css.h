@@ -44,7 +44,7 @@ typedef struct {
 } CSSPattern;
 
 // Skip spaces and comments
-const char* css_skip(const char* content);
+const char* css_skip(const char* content, const char* content_end);
 const char* csserr_str(int err);
-int css_parse_tag(AtomTable* atom_table, const char* content, char** end, CSSTag* tag);
-int css_parse_attribute(AtomTable* atom_table, const char* content, char** end, CSSAttribute* attribute);
+int css_parse_tag(AtomTable* atom_table, const char* content, const char* content_end, char** end, CSSTag* tag);
+int css_parse_attribute(AtomTable* atom_table, const char* content, const char* content_end, char** end, CSSAttribute* att);
