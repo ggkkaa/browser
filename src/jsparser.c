@@ -37,16 +37,13 @@ void dump_ast(ASTBranch *ast, int depth) {
 int gen_ast(JSTokens toks, ASTBranch *ast) {
     // go through and find the operation with the lowest precedence
     size_t min_tok_precedence = INIT_TOK_PREC, min_tok_idx;
-    printf("start\n");
     for (size_t i = 0; i < toks.len; i++) {
         if (toks.items[i].ttype >= 256 || !strchr(CHAR_OPS, toks.items[i].ttype)) continue;
         size_t this_precedence = operation_precedence[toks.items[i].ttype]; 
         if (this_precedence > min_tok_precedence) continue;
         min_tok_precedence = this_precedence;
         min_tok_idx = i;
-        printf("add %d (%c)\n", toks.items[i].ttype, toks.items[i].ttype);
     }
-    printf("end\n");
     if (min_tok_precedence == INIT_TOK_PREC) {
         if (toks.len != 1 || toks.items[0].ttype != JS_TOK_INTEGER) {
             fprintf(stderr, "invalid syntax (possibly todo for allowed lone types? idk)\n");
