@@ -6,14 +6,6 @@
 #include <darray.h>
 #include <string.h>
 
-static Atom* atom_new(const char* data, size_t n) {
-    Atom* atom = malloc(sizeof(*atom) + n + 1);
-    assert(atom && "Just buy more RAM");
-    atom->len = n;
-    memcpy(atom->data, data, n);
-    atom->data[n] = '\0';
-    return atom;
-}
 static_assert(HTMLERR_COUNT == 5, "Update htmlerr_strtab");
 static const char* htmlerr_strtab[] = {
     [HTMLERR_TODO] = "Unimplemented",

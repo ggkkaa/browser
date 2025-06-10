@@ -3,6 +3,8 @@
 #include <string.h>
 #include <assert.h>
 #include <darray.h>
+#include <atom.h>
+#include <stdlib.h>
 
 static_assert(CSSERR_COUNT == 5, "Update csserr_strtab");
 static const char* csserr_strtab[] = {
@@ -16,16 +18,6 @@ const char* csserr_str(int err) {
     err = -err;
     if(err >= CSSERR_COUNT) return "Unknown error";
     return csserr_strtab[err];
-}
-#include <atom.h>
-#include <stdlib.h>
-static Atom* atom_new(const char* data, size_t n) {
-    Atom* atom = malloc(sizeof(*atom) + n + 1);
-    assert(atom && "Just buy more RAM");
-    atom->len = n;
-    memcpy(atom->data, data, n);
-    atom->data[n] = '\0';
-    return atom;
 }
 // Skip comments and whitespace
 const char* css_skip(const char* content, const char* content_end) {

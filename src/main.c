@@ -13,17 +13,6 @@
 #include <atom_set.h>
 #include "html.h"
 
-static Atom* atom_new(const char* data, size_t n) {
-    Atom* atom = malloc(sizeof(*atom) + n + 1);
-    assert(atom && "Just buy more RAM");
-    atom->len = n;
-    memcpy(atom->data, data, n);
-    atom->data[n] = '\0';
-    return atom;
-}
-static Atom* atom_new_cstr(const char* data) {
-    return atom_new(data, strlen(data));
-}
 Vector2 MeasureCodepointEx(Font font, int codepoint, float fontSize, float spacing) {
     size_t index = GetGlyphIndex(font, codepoint);
     float scaleFactor = fontSize/font.baseSize;
