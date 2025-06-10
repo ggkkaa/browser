@@ -52,12 +52,10 @@ int gen_ast(JSTokens toks, ASTBranch *ast) {
         size_t this_precedence = operation_precedence[toks.items[i].ttype];
         if (min_tok_precedence < INIT_TOK_PREC && min_tok_paren_depth < paren_depth) continue;
         if (this_precedence > min_tok_precedence || paren_depth < min_tok_paren_depth) continue;
-        printf("temp %c - min tok prec = %zu - min tok paren depth = %zu - paren depth = %zu\n", toks.items[i].ttype, min_tok_precedence, min_tok_paren_depth, paren_depth);
         min_tok_precedence = this_precedence;
         min_tok_idx = i;
         min_tok_paren_depth = paren_depth;
     }
-    printf("set to thingy: %c\n", toks.items[min_tok_idx].ttype);
     if (min_tok_precedence == INIT_TOK_PREC) {
         for (size_t i = 0; i < toks.len; i++) {
             if (toks.items[i].ttype == '(' || toks.items[i].ttype == ')') continue;
