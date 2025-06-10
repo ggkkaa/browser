@@ -10,6 +10,7 @@ typedef struct {
 
 typedef enum {
     JS_TOK_INTEGER=256,
+    JS_TOK_IDENT,
     JS_TOK_COUNT,
 } JSTokType;
 
@@ -22,6 +23,7 @@ typedef enum {
     AST_NODE_BINOP,
     AST_NODE_UNARYOP,
     AST_NODE_UNSIGNED_INT,
+    AST_NODE_IDENT,
 } ASTNodeType;
 
 typedef struct ASTBranch ASTBranch;

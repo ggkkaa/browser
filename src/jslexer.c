@@ -9,6 +9,7 @@
 
 const char* tok_str_map[] = {
     [JS_TOK_INTEGER] = "Integer",
+    [JS_TOK_IDENT]   = "Identifier",
 };
 void print_token(JSToken tok) {
     if (tok.ttype < 256) {
@@ -16,7 +17,11 @@ void print_token(JSToken tok) {
         else printf("(%c)", tok.ttype);
     } else if (tok.ttype >= JS_TOK_COUNT || !tok.ttype) {
         printf("(InvalidToken)");
-    } else printf("(%s: %zu)", tok_str_map[tok.ttype], tok.val);
+    } else {
+        printf("(%s: ", tok_str_map[tok.ttype]);
+        if (tok.ttype == JS_TOK_IDENT) printf("%s)", (char*) tok.val);
+        else printf("%zu)", tok.val);
+    }
 }
 
 void dump_tokens(JSTokens toks) {
@@ -30,7 +35,7 @@ void dump_tokens(JSTokens toks) {
 int tokenise_js(JSTokens* toks, char* content) {
     for (; *content; content++) {
         if (*content == ' ') continue;
-        else if (strchr("+-*/\n()!", *content)) {
+        else if (strchr("+-*/\n()!=", *content)) {
             da_push(toks, ((JSToken) { .ttype=*content, .val=0 }));
         } else if (isdigit(*content)) {
             char* start = content;
@@ -40,6 +45,14 @@ int tokenise_js(JSTokens* toks, char* content) {
             int64_t num = strtoll(numstr, NULL, 10);
             free(numstr);
             da_push(toks, ((JSToken) { .ttype=JS_TOK_INTEGER, .val=(size_t)num }));
+            content--;
+        } else if (isalpha(*content)) {
+            char* start = content;
+            for (; isalnum(*content) || *content == '_'; content++);
+            char* end = content;
+            char* s = strndup(start, (int) (end - start)); // must be freed by caller at some point
+            da_push(toks, ((JSToken) { .ttype=JS_TOK_IDENT, .val=(size_t)s}));
+            content--;
         } else {
             fprintf(stderr, "invalid JS token: %d\n", *content);
             return -1;

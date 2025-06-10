@@ -4,15 +4,16 @@
 #include <string.h>
 #include <stdio.h>
 
-#define CHAR_OPS "*/+-!"
-#define BINOPS   "*/+-"
+#define CHAR_OPS "=*/+-!"
+#define BINOPS   "=*/+-"
 
 int operation_precedence[] = {
-    ['!'] = 3,
-    ['*'] = 2,
-    ['/'] = 2,
-    ['+'] = 1,
-    ['-'] = 1,
+    ['!'] = 4,
+    ['*'] = 3,
+    ['/'] = 3,
+    ['+'] = 2,
+    ['-'] = 2,
+    ['='] = 1,
 };
 
 #define PRINT_SPACES(x) \
@@ -23,6 +24,9 @@ void dump_ast(ASTBranch *ast, int depth) {
     switch (ast->type) {
     case AST_NODE_UNSIGNED_INT:
         PRINT_SPACES(depth); printf("-> UnsignedInteger(%zu)\n", ast->UnsignedInteger.val);
+        break;
+    case AST_NODE_IDENT:
+        PRINT_SPACES(depth); printf("-> Identifier(%s)\n", (char*) ast->UnsignedInteger.val);
         break;
     case AST_NODE_BINOP:
         PRINT_SPACES(depth); printf("-> BinOpNode(%c):\n", ast->BinOpNode.op);
@@ -58,7 +62,9 @@ int gen_ast(JSTokens toks, ASTBranch *ast) {
         if (toks.items[i].ttype >= 256 || !strchr(CHAR_OPS, toks.items[i].ttype)) continue;
         size_t this_precedence = operation_precedence[toks.items[i].ttype];
         if (min_tok_precedence < INIT_TOK_PREC && min_tok_paren_depth < paren_depth) continue;
-        if (this_precedence > min_tok_precedence || paren_depth < min_tok_paren_depth) continue;
+        if (((toks.items[i].ttype != '=' && (this_precedence > min_tok_precedence)) || 
+                    (toks.items[i].ttype == '=' && (this_precedence >= min_tok_precedence))) || 
+                paren_depth < min_tok_paren_depth) continue;
         min_tok_precedence = this_precedence;
         min_tok_idx = i;
         min_tok_paren_depth = paren_depth;
@@ -69,6 +75,12 @@ int gen_ast(JSTokens toks, ASTBranch *ast) {
             else if (toks.items[i].ttype == JS_TOK_INTEGER) {
                 *ast = (ASTBranch) {
                     .type = AST_NODE_UNSIGNED_INT,
+                    .UnsignedInteger = { .val=toks.items[i].val },
+                };
+                return 0;
+            } else if (toks.items[i].ttype == JS_TOK_IDENT) {
+                *ast = (ASTBranch) {
+                    .type = AST_NODE_IDENT,
                     .UnsignedInteger = { .val=toks.items[i].val },
                 };
                 return 0;
