@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <jsengine.h>
-#include <miscutils.h>
+#include <todo.h>
 #include <raylib.h>
 #include <fileutils.h>
 #include <string.h>
@@ -38,59 +38,7 @@ static Atom* atom_new_cstr(const char* data) {
 #define SCALE 100
 #define WIDTH  W_RATIO*SCALE
 #define HEIGHT H_RATIO*SCALE
-typedef struct HTMLAttribute HTMLAttribute;
-typedef struct {
-    HTMLAttribute** items;
-    size_t len, cap;
-} HTMLAttributes;
-struct HTMLAttribute {
-    char* key;
-    size_t key_len;
-    char* value; // value is NULL if it has no value
-    size_t value_len;
-};
-typedef struct HTMLTag HTMLTag;
-typedef struct {
-    HTMLTag** items;
-    size_t len, cap;
-} HTMLTags;
-// TODO: refactor this out to CSS
-// and some sort of CSSStyle
-enum {
-    CSSDISPLAY_INLINE,
-    CSSDISPLAY_INLINE_BLOCK,
-    CSSDISPLAY_BLOCK,
-
-    CSSDISPLAY_COUNT
-};
-typedef uint32_t CSSDisplay;
-struct HTMLTag {
-    HTMLTag* parent;
-    Atom* name;
-    HTMLTags children;
-    const char* str_content;
-    size_t str_content_len;
-    HTMLAttributes attributes;
-    CSSDisplay display;
-    bool self_closing;
-    // Box of the tag 
-    size_t x, y;
-    size_t width, height;
-};
-static_assert(HTMLERR_COUNT == 6, "Update htmlerr_strtab");
-const char* htmlerr_strtab[] = {
-    [HTMLERR_TODO] = "Unimplemented",
-    [HTMLERR_EOF]  = "End of File",
-    [HTMLERR_INVALID_TAG] = "Invalid tag format",
-    [HTMLERR_INVALID_ATTRIBUTE]  = "Invalid attribute format",
-    [HTMLERR_INVALID_JS]  = "Invalid JS (see separate error)",
-};
-const char* htmlerr_str(int err) {
-    if(err >= 0) return "OK";
-    err = -err;
-    if(err >= HTMLERR_COUNT) return "Unknown error";
-    return htmlerr_strtab[err];
-}
+#include "html.h"
 
 int parse_attribute(const char* content, HTMLAttribute* att, const char** end) {
     att->key = (char*)content;
