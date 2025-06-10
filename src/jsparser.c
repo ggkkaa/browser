@@ -36,24 +36,42 @@ void dump_ast(ASTBranch *ast, int depth) {
                            // this high
 int gen_ast(JSTokens toks, ASTBranch *ast) {
     // go through and find the operation with the lowest precedence
-    size_t min_tok_precedence = INIT_TOK_PREC, min_tok_idx;
+    size_t min_tok_precedence = INIT_TOK_PREC;
+    size_t min_tok_idx=0, min_tok_paren_depth=0;
+    size_t paren_depth = min_tok_paren_depth = 0;
     for (size_t i = 0; i < toks.len; i++) {
+        if      (toks.items[i].ttype == '(') paren_depth++;
+        else if (toks.items[i].ttype == ')') {
+            if (!paren_depth) {
+                fprintf(stderr, "invalid syntax (tried to use right parenthesis with no parenthesis open\n");
+                return -1;
+            }
+            paren_depth--;
+        }
         if (toks.items[i].ttype >= 256 || !strchr(CHAR_OPS, toks.items[i].ttype)) continue;
-        size_t this_precedence = operation_precedence[toks.items[i].ttype]; 
-        if (this_precedence > min_tok_precedence) continue;
+        size_t this_precedence = operation_precedence[toks.items[i].ttype];
+        if (min_tok_precedence < INIT_TOK_PREC && min_tok_paren_depth < paren_depth) continue;
+        if (this_precedence > min_tok_precedence || paren_depth < min_tok_paren_depth) continue;
+        printf("temp %c - min tok prec = %zu - min tok paren depth = %zu - paren depth = %zu\n", toks.items[i].ttype, min_tok_precedence, min_tok_paren_depth, paren_depth);
         min_tok_precedence = this_precedence;
         min_tok_idx = i;
+        min_tok_paren_depth = paren_depth;
     }
+    printf("set to thingy: %c\n", toks.items[min_tok_idx].ttype);
     if (min_tok_precedence == INIT_TOK_PREC) {
-        if (toks.len != 1 || toks.items[0].ttype != JS_TOK_INTEGER) {
-            fprintf(stderr, "invalid syntax (possibly todo for allowed lone types? idk)\n");
-            return -1;
+        for (size_t i = 0; i < toks.len; i++) {
+            if (toks.items[i].ttype == '(' || toks.items[i].ttype == ')') continue;
+            else if (toks.items[i].ttype == JS_TOK_INTEGER) {
+                *ast = (ASTBranch) {
+                    .type = AST_NODE_UNSIGNED_INT,
+                    .UnsignedInteger = { .val=toks.items[i].val },
+                };
+                return 0;
+            } else {
+                fprintf(stderr, "invalid syntax (possibly todo for allowed one types? idk)\n");
+                return -1;
+            }
         }
-        *ast = (ASTBranch) {
-            .type = AST_NODE_UNSIGNED_INT,
-            .UnsignedInteger = { .val=toks.items[0].val },
-        };
-        return 0;
     } else {
         if (toks.items[min_tok_idx].ttype >= 256 ||
                 !operation_precedence[toks.items[min_tok_idx].ttype]) {
