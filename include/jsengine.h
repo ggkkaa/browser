@@ -20,6 +20,7 @@ struct JSToken {
 
 typedef enum {
     AST_NODE_BINOP,
+    AST_NODE_UNARYOP,
     AST_NODE_UNSIGNED_INT,
 } ASTNodeType;
 
@@ -32,6 +33,10 @@ struct ASTBranch {
             int op; // ascii for the symbol
             ASTBranch *val2;
         } BinOpNode;
+        struct {
+            int op;
+            ASTBranch *val;
+        } UnaryOp;
         struct {
             uint64_t val;
         } UnsignedInteger;

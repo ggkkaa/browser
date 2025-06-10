@@ -4,8 +4,11 @@
 #include <string.h>
 #include <stdio.h>
 
-#define CHAR_OPS "*/+-"
+#define CHAR_OPS "*/+-!"
+#define BINOPS   "*/+-"
+
 int operation_precedence[] = {
+    ['!'] = 3,
     ['*'] = 2,
     ['/'] = 2,
     ['+'] = 1,
@@ -25,6 +28,10 @@ void dump_ast(ASTBranch *ast, int depth) {
         PRINT_SPACES(depth); printf("-> BinOpNode(%c):\n", ast->BinOpNode.op);
         dump_ast(ast->BinOpNode.val1, depth + 4);
         dump_ast(ast->BinOpNode.val2, depth + 4);
+        break;
+    case AST_NODE_UNARYOP:
+        PRINT_SPACES(depth); printf("-> UnaryOpNode(%c):\n", ast->UnaryOp.op);
+        dump_ast(ast->UnaryOp.val, depth + 4);
         break;
     default:
         PRINT_SPACES(depth); printf("-> Invalid node\n");
@@ -77,9 +84,26 @@ int gen_ast(JSTokens toks, ASTBranch *ast) {
             return -1;
         }
         // this assumes it's a BinOpNode, this should be fixed (TODO)
-        if (min_tok_idx < 1 || min_tok_idx >= toks.len) {
+        bool is_binop = strchr(BINOPS, toks.items[min_tok_idx].ttype);
+        if ((min_tok_idx < 1 && is_binop) || min_tok_idx >= toks.len) {
             fprintf(stderr, "invalid syntax around operation\n");
             return -1;
+        }
+        if (!is_binop) { // unary node
+            ast->type = AST_NODE_UNARYOP;
+            ast->UnaryOp.op = toks.items[min_tok_idx].ttype;
+            ast->UnaryOp.val = (ASTBranch*) malloc(sizeof(ASTBranch));
+            JSTokens toks_after = toks;
+            toks_after.items += min_tok_idx + 1;
+            toks_after.len = 1;
+            for (size_t depth = toks_after.items[toks_after.len-1].ttype == '(';
+                    depth && min_tok_idx + 1 + toks_after.len < toks.len;
+                    toks_after.len++) {
+                if (toks_after.items[toks_after.len].ttype == '(') depth++;
+                else if (toks_after.items[toks_after.len].ttype == ')') depth--;
+            }
+            if (gen_ast(toks_after, ast->UnaryOp.val) < 0) return -1;
+            return 0;
         }
         JSTokens toks_before = toks;
         JSTokens toks_after  = toks;

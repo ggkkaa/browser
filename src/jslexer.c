@@ -30,7 +30,7 @@ void dump_tokens(JSTokens toks) {
 int tokenise_js(JSTokens* toks, char* content) {
     for (; *content; content++) {
         if (*content == ' ') continue;
-        else if (strchr("+-*/\n()", *content)) {
+        else if (strchr("+-*/\n()!", *content)) {
             da_push(toks, ((JSToken) { .ttype=*content, .val=0 }));
         } else if (isdigit(*content)) {
             char* start = content;
