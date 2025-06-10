@@ -9,19 +9,10 @@
 #include <ctype.h>
 #include <math.h>
 #include <stdint.h>
-
-Vector2 MeasureCodepointEx(Font font, int codepoint, float fontSize, float spacing) {
-    size_t index = GetGlyphIndex(font, codepoint);
-    float scaleFactor = fontSize/font.baseSize;
-    return (Vector2){
-        font.glyphs[index].advanceX == 0 ? 
-            ((float)font.recs[index].width*scaleFactor + spacing) :
-            ((float)font.glyphs[index].advanceX*scaleFactor + spacing),
-        fontSize
-    };
-}
 #include <atom.h>
 #include <atom_set.h>
+#include "html.h"
+
 static Atom* atom_new(const char* data, size_t n) {
     Atom* atom = malloc(sizeof(*atom) + n + 1);
     assert(atom && "Just buy more RAM");
@@ -33,106 +24,22 @@ static Atom* atom_new(const char* data, size_t n) {
 static Atom* atom_new_cstr(const char* data) {
     return atom_new(data, strlen(data));
 }
+Vector2 MeasureCodepointEx(Font font, int codepoint, float fontSize, float spacing) {
+    size_t index = GetGlyphIndex(font, codepoint);
+    float scaleFactor = fontSize/font.baseSize;
+    return (Vector2){
+        font.glyphs[index].advanceX == 0 ? 
+            ((float)font.recs[index].width*scaleFactor + spacing) :
+            ((float)font.glyphs[index].advanceX*scaleFactor + spacing),
+        fontSize
+    };
+}
 #define W_RATIO 16
 #define H_RATIO 9
 #define SCALE 100
 #define WIDTH  W_RATIO*SCALE
 #define HEIGHT H_RATIO*SCALE
-#include "html.h"
 
-int parse_attribute(const char* content, HTMLAttribute* att, const char** end) {
-    att->key = (char*)content;
-    while (isalnum(*content) || *content == '_' || *content == '-')
-        content++;
-    att->key_len = content - att->key;
-    while(isspace(*content)) content++;
-    if (*content != '=') {
-        // it has no value
-        *end = content;
-        return 0;
-    }
-    content++;
-    while (isspace(*content)) content++;
-    char quote = *content;
-    if (*content != '"' && *content != '\'') {
-        att->value = (char*)content;
-        while(isalnum(*content)) content++;
-        if(content == att->value) return -HTMLERR_INVALID_ATTRIBUTE;
-        att->value_len = content - att->value;
-        *end = content;
-        return 0;
-    } 
-    content++;
-    att->value = (char*)content;
-    while(*content && *content != quote) content++;
-    if(*content != quote) return -HTMLERR_EOF;
-    att->value_len = content - att->value;
-    content++;
-    *end = content;
-    return 0;
-}
-
-int html_parse_next_tag(AtomTable* atom_table, const char* content, HTMLTag* tag, char** end) {
-    if(*content == '<') {
-        content++;
-        const char* name = content;
-        while(isalnum(*content)) content++;
-        tag->name = atom_table_get(atom_table, name, content-name);
-        if(!tag->name) {
-            tag->name = atom_new(name, content - name);
-            assert(atom_table_insert(atom_table, tag->name) && "Just buy more RAM");
-        }
-        while (*content && *content != '>' && *content != '/') {
-            while(isspace(*content)) content++;
-            int e;
-            HTMLAttribute *att = (HTMLAttribute*) malloc(sizeof(HTMLAttribute));
-            assert(att && "Just buy more RAM");
-            memset(att, 0, sizeof(*att));
-            if ((e=parse_attribute(content, att, &content)) < 0) {
-                free(att);
-                return e;
-            }
-            da_push(&tag->attributes, att);
-        }
-        if (*content == '/') {
-            if (content[1] != '>') return -HTMLERR_INVALID_TAG;
-            content += 2;
-            *end = (char*) content;
-            tag->self_closing = true;
-            return 0;
-        }
-        tag->self_closing = false;
-        content++;
-        *end = (char*)content;
-        return 0;
-    }
-    if(*content == '\0') return -HTMLERR_EOF;
-    tag->str_content = content;
-    while(*content != '<' && *content) content++;
-    tag->str_content_len = content - tag->str_content;
-    *end = (char*)content;
-    return 0;
-}
-
-//TODO: Handle html comments `<!-- html comment!-->` because it cannot load title in motherfuckingwebsite.html
-void dump_html_tag(HTMLTag* tag, size_t indent) {
-    if(tag->name) {
-        if(tag->name->len == 5 && strncmp(tag->name->data, "style", 5) == 0) return;
-        printf("%*s<%.*s>\n", (int)indent, "", (int)tag->name->len, tag->name->data);
-        for(size_t i = 0; i < tag->children.len; ++i) {
-            dump_html_tag(tag->children.items[i], indent + 4);
-        }
-        printf("%*s</%.*s>\n", (int)indent, "", (int)tag->name->len, tag->name->data);
-    } else {
-        printf("%*s", (int)indent, "");
-        for(size_t i = 0; i < tag->str_content_len; ++i) {
-            char c = tag->str_content[i];
-            if(isgraph(c) || c == ' ') printf("%c", c);
-            else printf("\\x%02X", c);
-        }
-        printf("\n");
-    }
-}
 void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize, float spacing, size_t* cursor_x, size_t* cursor_y) {
     size_t new_x = tag->x = *cursor_x;
     size_t new_y = tag->y = *cursor_y;

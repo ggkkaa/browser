@@ -50,4 +50,8 @@ struct HTMLTag {
     size_t width, height;
 };
 
+typedef struct AtomTable AtomTable;
 const char* htmlerr_str(int err);
+int html_parse_attribute(const char* content, HTMLAttribute* att, const char** end);
+int html_parse_next_tag(AtomTable* atom_table, const char* content, HTMLTag* tag, char** end);
+void dump_html_tag(HTMLTag* tag, size_t indent);
