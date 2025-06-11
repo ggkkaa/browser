@@ -419,7 +419,7 @@ int main(int argc, char** argv) {
             HTMLTag* tag = head->children.items[i];
             if(tag->name == style_atom && tag->children.len > 0) {
                 const char* css_content = tag->children.items[0]->str_content;
-                const char* css_content_end = tag->children.items[i]->str_content + tag->children.items[0]->str_content_len;
+                const char* css_content_end = tag->children.items[0]->str_content + tag->children.items[0]->str_content_len;
                 for(;;) {
                     css_content = css_skip(css_content, css_content_end);
                     if(css_content >= css_content_end) break;
