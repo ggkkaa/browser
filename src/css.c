@@ -5,6 +5,8 @@
 #include <darray.h>
 #include <atom.h>
 #include <stdlib.h>
+#include <todo.h>
+#include <html.h>
 
 static_assert(CSSERR_COUNT == 5, "Update csserr_strtab");
 static const char* csserr_strtab[] = {
@@ -98,4 +100,32 @@ int css_parse_attribute(AtomTable* atom_table, const char* content, const char* 
             return 0;
         }
     }
+}
+bool css_match_tag(CSSTag* css_tag, HTMLTag* html_tag) {
+    switch(css_tag->kind) {
+    case CSSTAG_TAG:
+        return html_tag->name == css_tag->name;
+    case CSSTAG_ID:
+        todof("match id");
+    case CSSTAG_CLASS:
+        todof("match class");
+    default:
+        assert(false && "unreachable");
+    }
+}
+bool css_match_pattern(CSSTag* patterns, size_t patterns_count, HTMLTag* html_tag) {
+    for(size_t i = 0; i < patterns_count && html_tag; ++i) {
+        if(!css_match_tag(&patterns[i], html_tag)) return false;
+        html_tag = html_tag->parent;
+    }
+    return html_tag != NULL;
+}
+void css_add_attribute(CSSAttributes* attributes, CSSAttribute attribute) {
+    for(size_t i = 0; i < attributes->len; ++i) {
+        if(attributes->items[i].name == attribute.name) {
+            // TODO: cleanup old attribute if necessary
+            attributes->items[i] = attribute;
+        }
+    }
+    da_push(attributes, attribute);
 }

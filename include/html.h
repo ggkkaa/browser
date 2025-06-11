@@ -36,6 +36,7 @@ enum {
     CSSDISPLAY_COUNT
 };
 typedef uint32_t CSSDisplay;
+#include "css.h"
 struct HTMLTag {
     HTMLTag* parent;
     Atom* name;
@@ -43,6 +44,7 @@ struct HTMLTag {
     const char* str_content;
     size_t str_content_len;
     HTMLAttributes attributes;
+    CSSAttributes css_attribs;
     CSSDisplay display;
     bool self_closing;
     // Box of the tag 

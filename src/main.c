@@ -12,6 +12,7 @@
 #include <atom.h>
 #include <atom_set.h>
 #include "html.h"
+#include <css_pattern_map.h>
 
 Vector2 MeasureCodepointEx(Font font, int codepoint, float fontSize, float spacing) {
     size_t index = GetGlyphIndex(font, codepoint);
@@ -28,6 +29,7 @@ Vector2 MeasureCodepointEx(Font font, int codepoint, float fontSize, float spaci
 #define SCALE 100
 #define WIDTH  W_RATIO*SCALE
 #define HEIGHT H_RATIO*SCALE
+#define ARRAY_LEN(a) (sizeof(a)/sizeof(*a))
 
 void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize, float spacing, size_t* cursor_x, size_t* cursor_y) {
     size_t new_x = tag->x = *cursor_x;
@@ -174,6 +176,49 @@ HTMLTag* find_child_html_tag(HTMLTag* tag, const char* name) {
     }
     return NULL;
 }
+void match_css_patterns(HTMLTag* tag, CSSPatternMap* tags) {
+    if(tags->len == 0) return;
+    CSSPatterns* patterns = css_pattern_map_get(tags, tag->name);
+    if(patterns) {
+        for(size_t i = 0; i < patterns->len; ++i) {
+            CSSPattern* pattern = patterns->items[i];
+            if(css_match_pattern(pattern->items, pattern->len, tag)) {
+                for(size_t j = 0; j < pattern->attribute.len; ++j) {
+                    css_add_attribute(&tag->css_attribs, pattern->attribute.items[j]);
+                }
+            }
+        }
+    }
+    for(size_t i = 0; i < tag->children.len; ++i) {
+        match_css_patterns(tag->children.items[i], tags);
+    }
+}
+void apply_css_styles(HTMLTag* tag) {
+    for(size_t i = 0; i < tag->css_attribs.len; ++i) { 
+        CSSAttribute* att = &tag->css_attribs.items[i];
+        // TODO: atomise this sheizung
+        if(strcmp(att->name->data, "display") == 0) {
+            if(att->args.len > 1) fprintf(stderr, "WARN display argument has more arguments!\n");
+            else if(att->args.len < 1) {
+                fprintf(stderr, "ERROR display missing argument!\n");
+                continue;
+            }
+            CSSArg* arg = &att->args.items[i];
+            if(arg->value_len == 5 && memcmp(arg->value, "block", 5) == 0) {
+                tag->display = CSSDISPLAY_BLOCK;
+            } else if(arg->value_len == 6 && memcmp(arg->value, "inline", 6) == 0) {
+                tag->display = CSSDISPLAY_INLINE;
+            } else if(arg->value_len == 12 && memcmp(arg->value, "inline-block", 12) == 0) {
+                tag->display = CSSDISPLAY_INLINE_BLOCK;
+            }
+        } else {
+            fprintf(stderr, "WARN "__FILE__":" STRINGIFY1(__LINE__)": Unhandled attribute: `%s`\n", att->name->data);
+        }
+    }
+    for(size_t i = 0; i < tag->children.len; ++i) {
+        apply_css_styles(tag->children.items[i]);
+    }
+}
 // FIXME: I know strcasecmp exists and we *can* use that on 
 // Unix systems with a flag but for now this is fine
 static int strncmp_ci(const char *restrict s1, const char *restrict s2, size_t max) {
@@ -280,7 +325,7 @@ int main(int argc, char** argv) {
         "body",
         "html",
     };
-    for(size_t i = 0; i < sizeof(block_tags)/sizeof(*block_tags); ++i) {
+    for(size_t i = 0; i < ARRAY_LEN(block_tags); ++i) {
         Atom* atom = atom_table_get(&atom_table, block_tags[i], strlen(block_tags[i]));
         if(!atom) {
             atom = atom_new_cstr(block_tags[i]);
@@ -292,7 +337,7 @@ int main(int argc, char** argv) {
         "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"
     };
     AtomSet void_elements = { 0 };
-    for(size_t i = 0; i < sizeof(void_tags)/sizeof(*void_tags); ++i) {
+    for(size_t i = 0; i < ARRAY_LEN(void_tags); ++i) {
         Atom* atom = atom_table_get(&atom_table, void_tags[i], strlen(void_tags[i]));
         if(!atom) {
             atom = atom_new_cstr(void_tags[i]);
@@ -304,6 +349,22 @@ int main(int argc, char** argv) {
     assert(atom_table_insert(&atom_table, root.name) && "Just buy more RAM");
     root.display = CSSDISPLAY_BLOCK;
     HTMLTag* node = &root;
+    // TODO: special handling for those.
+    // I couldn't give a shit for now so :(
+#if 0
+    const char* raw_text_elements_str[] = {
+        "script", "style"
+    };
+    Atom* raw_text_elements[ARRAY_LEN(raw_text_elements)];
+    for(size_t i = 0; i < sizeof(raw_text_elements_str)/sizeof(*raw_text_elements_str); ++i) {
+        Atom* atom = atom_table_get(&atom_table, raw_text_elements_str[i], strlen(raw_text_elements_str[i]));
+        if(!atom) {
+            atom = atom_new_cstr(raw_text_elements_str[i]);
+            atom_table_insert(&atom_table, atom);
+        }
+        raw_text_elements[i] = atom;
+    }
+#endif
     for(;;) {
         while(isspace(*content)) content++;
         if(*content == '\0') break;
@@ -349,9 +410,69 @@ int main(int argc, char** argv) {
     }
     dump_html_tag(node, 0);
     if (headless) return 0;
+    CSSPatternMap tags = { 0 };
     HTMLTag* html = find_child_html_tag(&root, "html");
     HTMLTag* head = find_child_html_tag(html, "head");
+    Atom* style_atom = atom_table_get(&atom_table, "style", 5);
+    if(style_atom && head) {
+        for(size_t i = 0; i < head->children.len; ++i) {
+            HTMLTag* tag = head->children.items[i];
+            if(tag->name == style_atom && tag->children.len > 0) {
+                const char* css_content = tag->children.items[0]->str_content;
+                const char* css_content_end = tag->children.items[i]->str_content + tag->children.items[0]->str_content_len;
+                for(;;) {
+                    css_content = css_skip(css_content, css_content_end);
+                    if(css_content >= css_content_end) break;
+                    int e;
+                    CSSPattern* pattern = malloc(sizeof(*pattern));
+                    if(!pattern) break;
+                    memset(pattern, 0, sizeof(*pattern));
+                    CSSTag* tag = malloc(sizeof(*tag));
+                    if(!tag) {
+                        free(pattern);
+                        break;
+                    }
+                    memset(tag, 0, sizeof(*tag));
+                    pattern->items = tag;
+                    pattern->len = 0;
+                    pattern->cap = 1;
+                    if((e=css_parse_tag(&atom_table, css_content, css_content_end, (char**)&css_content, tag))) {
+                        fprintf(stderr, "CSS:ERROR %s\n", csserr_str(e));
+                        break;
+                    }
+                    css_content = css_skip(css_content, css_content_end);
+                    if(*css_content == ',') todof("Implement coma separated tags");
+                    else if(isalnum(*css_content)) todof("Implement space separated tags (patterns)");
+                    else if(*css_content != '{') { 
+                        fprintf(stderr, "Fok you leather man: `%c`\n", *css_content);
+                        goto css_end;
+                    }
+                    css_content++;
+                    for(;;) {
+                        css_content = css_skip(css_content, css_content_end);
+                        if(css_content >= css_content_end) goto css_end;
+                        if(*css_content == '}') {
+                            css_content++;
+                            break;
+                        }
+                        da_reserve(&pattern->attribute, 1);
+                        e = css_parse_attribute(&atom_table, css_content, css_content_end, (char**)&css_content, &pattern->attribute.items[pattern->attribute.len++]);
+                        if(e < 0) {
+                            fprintf(stderr, "ERROR %s\n", csserr_str(e));
+                            goto css_end;
+                        }
+                    }
+                    CSSPatterns patterns = { 0 };
+                    da_push(&patterns, pattern);
+                    css_pattern_map_insert(&tags, tag->name, patterns);
+                }
+                css_end:
+            }
+        }
+    }
     HTMLTag* body = find_child_html_tag(html, "body");
+    match_css_patterns(body, &tags);
+    apply_css_styles(body);
     HTMLTag* title = find_child_html_tag(head, "title");
     const char* window_title = "Bikeshed";
     if(title && title->children.len && !title->children.items[0]->name) {

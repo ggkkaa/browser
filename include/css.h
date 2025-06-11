@@ -37,10 +37,12 @@ typedef struct {
         size_t len, cap;
     } args;
 } CSSAttribute;
+// TODO: convert to hashmap :(
 typedef struct {
     CSSAttribute* items;
     size_t len, cap;
 } CSSAttributes;
+void css_add_attribute(CSSAttributes* attributes, CSSAttribute attribute);
 typedef struct {
     CSSTag* items;
     size_t len, cap;
@@ -53,3 +55,6 @@ const char* css_skip(const char* content, const char* content_end);
 const char* csserr_str(int err);
 int css_parse_tag(AtomTable* atom_table, const char* content, const char* content_end, char** end, CSSTag* tag);
 int css_parse_attribute(AtomTable* atom_table, const char* content, const char* content_end, char** end, CSSAttribute* att);
+typedef struct HTMLTag HTMLTag;
+bool css_match_tag(CSSTag* css_tag, HTMLTag* html_tag);
+bool css_match_pattern(CSSTag* patterns, size_t patterns_count, HTMLTag* html_tag);
