@@ -43,6 +43,15 @@ void dump_ast(ASTBranch *ast, int depth) {
     };
 }
 
+static ssize_t find_xth_tok(size_t x, JSTokType tok, JSTokens toks) {
+    size_t count = 0;
+    for (size_t i = 0; i < toks.len; i++) {
+        if (toks.items[i].ttype != tok) continue;
+        if (count == x) return i;
+        count++;
+    }
+    return -1;
+}
 #define INIT_TOK_PREC 1000 // there should really never actually be an operation precedence
                            // this high
 int gen_ast(JSTokens toks, ASTBranch *ast) {
@@ -54,7 +63,7 @@ int gen_ast(JSTokens toks, ASTBranch *ast) {
         if      (toks.items[i].ttype == '(') paren_depth++;
         else if (toks.items[i].ttype == ')') {
             if (!paren_depth) {
-                fprintf(stderr, "invalid syntax (tried to use right parenthesis with no parenthesis open\n");
+                fprintf(stderr, "invalid syntax (tried to use right parenthesis with no parenthesis open)\n");
                 return -1;
             }
             paren_depth--;
@@ -117,11 +126,28 @@ int gen_ast(JSTokens toks, ASTBranch *ast) {
             if (gen_ast(toks_after, ast->UnaryOp.val) < 0) return -1;
             return 0;
         }
+        
         JSTokens toks_before = toks;
         JSTokens toks_after  = toks;
         toks_before.len = min_tok_idx;
         toks_after.items += min_tok_idx + 1;
         toks_after.len -= min_tok_idx + 1;
+        if (toks_after.items[toks_after.len - 1].ttype == ')') toks_after.len--;
+        if (min_tok_paren_depth) {
+            ssize_t open_off = find_xth_tok(min_tok_paren_depth - 1, '(', toks) + 1;
+            if (open_off < 0) {
+                fprintf(stderr, "uhhh wtf?\n");
+                return -1;
+            }
+            toks_before.items += open_off;
+            toks_before.len -= open_off;
+            ssize_t closed_off = find_xth_tok(min_tok_paren_depth - 1, ')', toks_after) + 1;
+            if (closed_off < 0) {
+                fprintf(stderr, "uhhh wtf (2.0)?\n");
+                return -1;
+            }
+            toks_after.len -= closed_off;
+        }
         ast->BinOpNode.val1 = (ASTBranch*) malloc(sizeof(ASTBranch));
         ast->BinOpNode.val2 = (ASTBranch*) malloc(sizeof(ASTBranch));
         if (gen_ast(toks_before, ast->BinOpNode.val1) < 0) return -1;
