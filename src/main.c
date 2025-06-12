@@ -73,9 +73,9 @@ void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float textFon
                 x = 0;// tag->x;
                 y += textFontSize;
             }
+            if(x + size.x > max_x) max_x = ceilf(x + size.x);
+            if(y + size.y > max_y) max_y = ceilf(y + size.y);
             x += size.x;
-            if(x + size.x > max_x) max_x = x + size.x;
-            if(y + size.y > max_y) max_y = y + size.y;
         }
         new_x = x;
         new_y = y;
