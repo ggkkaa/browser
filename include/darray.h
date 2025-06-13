@@ -21,3 +21,11 @@
         da_reserve(da, 1);\
         (da)->items[(da)->len++]=value;\
    } while(0)
+#define da_insert(da, index, value) \
+   do {\
+        assert((int)(index) <= (int)(da)->len && "Index out of bounds");\
+        da_reserve(da, 1);\
+        memmove(&(da)->items[(index) + 1], &(da)->items[(index)], ((da)->len - (index)) * sizeof(*(da)->items));\
+        (da)->items[(index)] = (value);\
+        (da)->len++;\
+   } while(0)
