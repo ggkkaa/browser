@@ -1,10 +1,6 @@
 #pragma once
 #include <css.h>
 typedef struct CSSPatternMapBucket CSSPatternMapBucket;
-typedef struct {
-    CSSPattern** items;
-    size_t len, cap;
-} CSSPatterns;
 struct CSSPatternMapBucket {
     CSSPatternMapBucket* next;
     // Essentially equivilent to pattern.items[0].name. We just cache it cuz its not changed

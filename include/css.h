@@ -49,7 +49,10 @@ typedef struct {
     // TODO: CSSTag inline_buffer[1];
     CSSAttributes attribute;
 } CSSPattern;
-
+typedef struct {
+    CSSPattern** items;
+    size_t len, cap;
+} CSSPatterns;
 // Skip spaces and comments
 const char* css_skip(const char* content, const char* content_end);
 const char* csserr_str(int err);
