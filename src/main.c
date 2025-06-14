@@ -366,7 +366,6 @@ int main(int argc, char** argv) {
     (void) quirks_mode;
     HTMLTag root = { 0 };
     AtomTable atom_table = { 0 };
-    AtomSet block_elements = { 0 };
     const char* void_tags[] = {
         "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"
     };
@@ -418,9 +417,6 @@ int main(int argc, char** argv) {
         assert(tag && "Just buy more RAM");
         memset(tag, 0, sizeof(*tag));
         int e = html_parse_next_tag(&atom_table, content, tag, &content);
-        if(tag->name && atom_set_get(&block_elements, tag->name)) {
-            tag->display = CSSDISPLAY_BLOCK;
-        }
         if(e == -HTMLERR_EOF) break;
         tag->parent = node; 
         da_push(&node->children, tag);
