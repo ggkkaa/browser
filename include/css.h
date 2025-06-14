@@ -51,7 +51,7 @@ typedef struct {
 typedef struct {
     CSSPattern* items;
     size_t len, cap;
-    CSSAttributes attribute;
+    CSSAttributes attributes;
 } CSSPatterns;
 // Skip spaces and comments
 const char* css_skip(const char* content, const char* content_end);
