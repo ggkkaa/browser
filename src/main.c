@@ -464,18 +464,16 @@ int main(int argc, char** argv) {
                     css_content = css_skip(css_content, css_content_end);
                     if(css_content >= css_content_end) break;
                     int e;
-                    CSSPattern pattern = { 0 };
-                    if((e=css_parse_pattern(&atom_table, &pattern, css_content, css_content_end, &css_content)) < 0) {
-                        fprintf(stderr, "CSS:ERROR: Parsing pattern: %s\n", csserr_str(e));
+                    CSSPatterns patterns = { 0 };
+                    if((e=css_parse_patterns(&atom_table, &patterns, css_content, css_content_end, &css_content)) < 0) {
+                        fprintf(stderr, "CSS:ERROR: parsing patterns: %s\n", csserr_str(e));
                         goto css_end;
                     }
-                    if(*css_content == ',') todof("Implement coma separated tags");
-                    else if(*css_content != '{') {
+                    if(css_content >= css_content_end || *css_content != '{') {
                         fprintf(stderr, "CSS:WARN: fok you leather man: `%c`\n", *css_content);
                         goto css_end;
                     }
                     css_content++;
-                    CSSPatterns patterns = { 0 };
                     for(;;) {
                         css_content = css_skip(css_content, css_content_end);
                         if(css_content >= css_content_end) goto css_end;
@@ -490,8 +488,12 @@ int main(int argc, char** argv) {
                             goto css_end;
                         }
                     }
-                    da_push(&patterns, pattern);
-                    css_pattern_map_insert(&tags, pattern.items[0].name, patterns);
+                    for(size_t i = 0; i < patterns.len; ++i) {
+                        CSSPattern* pattern = &patterns.items[i];
+                        CSSTag* tag = &pattern->items[0];
+                        assert(tag->kind == CSSTAG_TAG && "TODO: Other 3 maps (I'm lazy)");
+                        css_pattern_map_insert(&tags, pattern->items[0].name, patterns);
+                    }
                 }
                 css_end:
             }

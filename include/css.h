@@ -59,6 +59,7 @@ const char* csserr_str(int err);
 int css_parse_tag(AtomTable* atom_table, const char* content, const char* content_end, char** end, CSSTag* tag);
 int css_parse_attribute(AtomTable* atom_table, const char* content, const char* content_end, char** end, CSSAttribute* att);
 int css_parse_pattern(AtomTable* atom_table, CSSPattern* pattern, const char* css_content, const char* css_content_end, const char** end);
+int css_parse_patterns(AtomTable* atom_table, CSSPatterns* patterns, const char* css_content, const char* css_content_end, const char** end);
 typedef struct HTMLTag HTMLTag;
 bool css_match_tag(CSSTag* css_tag, HTMLTag* html_tag);
 bool css_match_pattern(CSSTag* patterns, size_t patterns_count, HTMLTag* html_tag);

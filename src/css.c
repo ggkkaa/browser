@@ -104,8 +104,8 @@ int css_parse_attribute(AtomTable* atom_table, const char* content, const char* 
 int css_parse_pattern(AtomTable* atom_table, CSSPattern* pattern, const char* css_content, const char* css_content_end, const char** end) {
     int e;
     for(;;) {
-        CSSTag tag;
-        if((e=css_parse_tag(atom_table, css_content, css_content_end, (char**)&css_content, &tag))) return e;
+        CSSTag tag = { 0 };
+        if((e=css_parse_tag(atom_table, css_content, css_content_end, (char**)&css_content, &tag)) < 0) return e;
         da_push(pattern, tag);
         css_content = css_skip(css_content, css_content_end);
         if(!isalnum(*css_content)) break;
@@ -114,6 +114,20 @@ int css_parse_pattern(AtomTable* atom_table, CSSPattern* pattern, const char* cs
         CSSTag temp = pattern->items[i];
         pattern->items[i] = pattern->items[pattern->len-1-i];
         pattern->items[pattern->len-1-i] = temp;
+    }
+    *end = css_content;
+    return 0;
+}
+int css_parse_patterns(AtomTable* atom_table, CSSPatterns* patterns, const char* css_content, const char* css_content_end, const char** end) {
+    int e;
+    for(;;) {
+        CSSPattern pattern = { 0 };
+        if((e=css_parse_pattern(atom_table, &pattern, css_content, css_content_end, &css_content)) < 0) return e;
+        da_push(patterns, pattern);
+        css_content = css_skip(css_content, css_content_end);
+        if(css_content >= css_content_end || *css_content != ',') break;
+        css_content++;
+        css_content = css_skip(css_content, css_content_end);
     }
     *end = css_content;
     return 0;
