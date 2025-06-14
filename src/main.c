@@ -261,6 +261,46 @@ void apply_css_styles(HTMLTag* tag) {
         apply_css_styles(tag->children.items[i]);
     }
 }
+int css_parse(AtomTable* atom_table, CSSPatternMap* tags, const char* css_content, const char* css_content_end, const char** end) {
+    for(;;) {
+        css_content = css_skip(css_content, css_content_end);
+        if(css_content >= css_content_end) break;
+        int e;
+        CSSPatterns patterns = { 0 };
+        if((e=css_parse_patterns(atom_table, &patterns, css_content, css_content_end, &css_content)) < 0) {
+            // fprintf(stderr, "CSS:ERROR: parsing patterns: %s\n", csserr_str(e));
+            return e;
+        }
+        if(css_content >= css_content_end || *css_content != '{') {
+            // fprintf(stderr, "CSS:WARN: fok you leather man: `%c`\n", *css_content);
+            return -CSSERR_INVALID_ATTRIBUTE_SYNTAX;
+        }
+        css_content++;
+        for(;;) {
+            css_content = css_skip(css_content, css_content_end);
+            if(css_content >= css_content_end) goto css_end;
+            if(*css_content == '}') {
+                css_content++;
+                break;
+            }
+            da_reserve(&patterns.attribute, 1);
+            e = css_parse_attribute(atom_table, css_content, css_content_end, (char**)&css_content, &patterns.attribute.items[patterns.attribute.len++]);
+            if(e < 0) {
+                // fprintf(stderr, "ERROR %s\n", csserr_str(e));
+                return e;
+            }
+        }
+        for(size_t i = 0; i < patterns.len; ++i) {
+            CSSPattern* pattern = &patterns.items[i];
+            CSSTag* tag = &pattern->items[0];
+            assert(tag->kind == CSSTAG_TAG && "TODO: Other 3 maps (I'm lazy)");
+            css_pattern_map_insert(tags, pattern->items[0].name, patterns);
+        }
+    }
+css_end:
+    *end = css_content;
+    return 0;
+}
 // FIXME: I know strcasecmp exists and we *can* use that on 
 // Unix systems with a flag but for now this is fine
 static int strncmp_ci(const char *restrict s1, const char *restrict s2, size_t max) {
@@ -460,42 +500,10 @@ int main(int argc, char** argv) {
             if(tag->name == style_atom && tag->children.len > 0) {
                 const char* css_content = tag->children.items[0]->str_content;
                 const char* css_content_end = tag->children.items[0]->str_content + tag->children.items[0]->str_content_len;
-                for(;;) {
-                    css_content = css_skip(css_content, css_content_end);
-                    if(css_content >= css_content_end) break;
-                    int e;
-                    CSSPatterns patterns = { 0 };
-                    if((e=css_parse_patterns(&atom_table, &patterns, css_content, css_content_end, &css_content)) < 0) {
-                        fprintf(stderr, "CSS:ERROR: parsing patterns: %s\n", csserr_str(e));
-                        goto css_end;
-                    }
-                    if(css_content >= css_content_end || *css_content != '{') {
-                        fprintf(stderr, "CSS:WARN: fok you leather man: `%c`\n", *css_content);
-                        goto css_end;
-                    }
-                    css_content++;
-                    for(;;) {
-                        css_content = css_skip(css_content, css_content_end);
-                        if(css_content >= css_content_end) goto css_end;
-                        if(*css_content == '}') {
-                            css_content++;
-                            break;
-                        }
-                        da_reserve(&patterns.attribute, 1);
-                        e = css_parse_attribute(&atom_table, css_content, css_content_end, (char**)&css_content, &patterns.attribute.items[patterns.attribute.len++]);
-                        if(e < 0) {
-                            fprintf(stderr, "ERROR %s\n", csserr_str(e));
-                            goto css_end;
-                        }
-                    }
-                    for(size_t i = 0; i < patterns.len; ++i) {
-                        CSSPattern* pattern = &patterns.items[i];
-                        CSSTag* tag = &pattern->items[0];
-                        assert(tag->kind == CSSTAG_TAG && "TODO: Other 3 maps (I'm lazy)");
-                        css_pattern_map_insert(&tags, pattern->items[0].name, patterns);
-                    }
+                int e = css_parse(&atom_table, &tags, css_content, css_content_end, &css_content);
+                if(e < 0) {
+                    fprintf(stderr, "CSS:ERROR parsing CSS: %s\n", csserr_str(e));
                 }
-                css_end:
             }
         }
     }
