@@ -225,8 +225,8 @@ void match_css_patterns(HTMLTag* tag, CSSPatternMap* tags) {
         for(size_t i = 0; i < patterns->len; ++i) {
             CSSPattern* pattern = patterns->items[i];
             if(css_match_pattern(pattern->items, pattern->len, tag)) {
-                for(size_t j = 0; j < pattern->attribute.len; ++j) {
-                    css_add_attribute(&tag->css_attribs, pattern->attribute.items[j]);
+                for(size_t j = 0; j < patterns->attribute.len; ++j) {
+                    css_add_attribute(&tag->css_attribs, patterns->attribute.items[j]);
                 }
             }
         }
@@ -477,6 +477,7 @@ int main(int argc, char** argv) {
                         goto css_end;
                     }
                     css_content++;
+                    CSSPatterns patterns = { 0 };
                     for(;;) {
                         css_content = css_skip(css_content, css_content_end);
                         if(css_content >= css_content_end) goto css_end;
@@ -484,14 +485,13 @@ int main(int argc, char** argv) {
                             css_content++;
                             break;
                         }
-                        da_reserve(&pattern->attribute, 1);
-                        e = css_parse_attribute(&atom_table, css_content, css_content_end, (char**)&css_content, &pattern->attribute.items[pattern->attribute.len++]);
+                        da_reserve(&patterns.attribute, 1);
+                        e = css_parse_attribute(&atom_table, css_content, css_content_end, (char**)&css_content, &patterns.attribute.items[patterns.attribute.len++]);
                         if(e < 0) {
                             fprintf(stderr, "ERROR %s\n", csserr_str(e));
                             goto css_end;
                         }
                     }
-                    CSSPatterns patterns = { 0 };
                     da_push(&patterns, pattern);
                     css_pattern_map_insert(&tags, pattern->items[0].name, patterns);
                 }
