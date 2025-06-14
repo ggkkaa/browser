@@ -283,8 +283,9 @@ int css_parse(AtomTable* atom_table, CSSPatternMap* tags, const char* css_conten
                 css_content++;
                 break;
             }
-            da_reserve(&patterns.attribute, 1);
-            e = css_parse_attribute(atom_table, css_content, css_content_end, (char**)&css_content, &patterns.attribute.items[patterns.attribute.len++]);
+            CSSAttribute att = { 0 };
+            e = css_parse_attribute(atom_table, css_content, css_content_end, (char**)&css_content, &att);
+            da_push(&patterns.attribute, att);
             if(e < 0) {
                 // fprintf(stderr, "ERROR %s\n", csserr_str(e));
                 return e;
