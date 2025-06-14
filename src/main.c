@@ -350,6 +350,7 @@ int main(int argc, char** argv) {
     char* content = content_data;
     bool quirks_mode = true;
     if (rawjs) return run_js(content);
+
     if(strncmp_ci(content, "<!DOCTYPE", 9) == 0) {
         content += 9;
         while(isspace(*content)) content++;
@@ -492,6 +493,22 @@ int main(int argc, char** argv) {
         }
     }
     CSSPatternMap tags = { 0 };
+    {
+        const char* default_css_path = "default.css";
+        size_t default_css_size;
+        const char* default_css = read_entire_file(default_css_path, &default_css_size);
+        if(!default_css) {
+            fprintf(stderr, "ERROR: Failed to load `%s`\n", default_css_path);
+            return 1;
+        }
+        const char* default_css_endptr;
+        int e = css_parse(&atom_table, &tags, default_css, default_css+default_css_size, &default_css_endptr);
+        if(e < 0) {
+            fprintf(stderr, "ERROR: Failed to parse default.css: %s\n", csserr_str(e)); 
+            return 1;
+        }
+        free((void*)default_css);
+    }
     HTMLTag* html = find_child_html_tag(&root, "html");
     HTMLTag* head = find_child_html_tag(html, "head");
     Atom* style_atom = atom_table_get(&atom_table, "style", 5);
