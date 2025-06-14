@@ -223,7 +223,7 @@ void match_css_patterns(HTMLTag* tag, CSSPatternMap* tags) {
     CSSPatterns* patterns = css_pattern_map_get(tags, tag->name);
     if(patterns) {
         for(size_t i = 0; i < patterns->len; ++i) {
-            CSSPattern* pattern = patterns->items[i];
+            CSSPattern* pattern = &patterns->items[i];
             if(css_match_pattern(pattern->items, pattern->len, tag)) {
                 for(size_t j = 0; j < patterns->attribute.len; ++j) {
                     css_add_attribute(&tag->css_attribs, patterns->attribute.items[j]);
@@ -464,10 +464,8 @@ int main(int argc, char** argv) {
                     css_content = css_skip(css_content, css_content_end);
                     if(css_content >= css_content_end) break;
                     int e;
-                    CSSPattern* pattern = malloc(sizeof(*pattern));
-                    if(!pattern) break;
-                    memset(pattern, 0, sizeof(*pattern));
-                    if((e=css_parse_pattern(&atom_table, pattern, css_content, css_content_end, &css_content)) < 0) {
+                    CSSPattern pattern = { 0 };
+                    if((e=css_parse_pattern(&atom_table, &pattern, css_content, css_content_end, &css_content)) < 0) {
                         fprintf(stderr, "CSS:ERROR: Parsing pattern: %s\n", csserr_str(e));
                         goto css_end;
                     }
@@ -493,7 +491,7 @@ int main(int argc, char** argv) {
                         }
                     }
                     da_push(&patterns, pattern);
-                    css_pattern_map_insert(&tags, pattern->items[0].name, patterns);
+                    css_pattern_map_insert(&tags, pattern.items[0].name, patterns);
                 }
                 css_end:
             }

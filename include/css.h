@@ -49,7 +49,7 @@ typedef struct {
     // TODO: CSSTag inline_buffer[1];
 } CSSPattern;
 typedef struct {
-    CSSPattern** items;
+    CSSPattern* items;
     size_t len, cap;
     CSSAttributes attribute;
 } CSSPatterns;
