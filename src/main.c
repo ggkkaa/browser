@@ -467,24 +467,13 @@ int main(int argc, char** argv) {
                     CSSPattern* pattern = malloc(sizeof(*pattern));
                     if(!pattern) break;
                     memset(pattern, 0, sizeof(*pattern));
-                    CSSTag* tag = malloc(sizeof(*tag));
-                    if(!tag) {
-                        free(pattern);
-                        break;
+                    if((e=css_parse_pattern(&atom_table, pattern, css_content, css_content_end, &css_content)) < 0) {
+                        fprintf(stderr, "CSS:ERROR: Parsing pattern: %s\n", csserr_str(e));
+                        goto css_end;
                     }
-                    memset(tag, 0, sizeof(*tag));
-                    pattern->items = tag;
-                    pattern->len = 0;
-                    pattern->cap = 1;
-                    if((e=css_parse_tag(&atom_table, css_content, css_content_end, (char**)&css_content, tag))) {
-                        fprintf(stderr, "CSS:ERROR %s\n", csserr_str(e));
-                        break;
-                    }
-                    css_content = css_skip(css_content, css_content_end);
                     if(*css_content == ',') todof("Implement coma separated tags");
-                    else if(isalnum(*css_content)) todof("Implement space separated tags (patterns)");
-                    else if(*css_content != '{') { 
-                        fprintf(stderr, "Fok you leather man: `%c`\n", *css_content);
+                    else if(*css_content != '{') {
+                        fprintf(stderr, "CSS:WARN: fok you leather man: `%c`\n", *css_content);
                         goto css_end;
                     }
                     css_content++;
@@ -504,7 +493,7 @@ int main(int argc, char** argv) {
                     }
                     CSSPatterns patterns = { 0 };
                     da_push(&patterns, pattern);
-                    css_pattern_map_insert(&tags, tag->name, patterns);
+                    css_pattern_map_insert(&tags, pattern->items[0].name, patterns);
                 }
                 css_end:
             }

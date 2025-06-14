@@ -101,6 +101,16 @@ int css_parse_attribute(AtomTable* atom_table, const char* content, const char* 
         }
     }
 }
+int css_parse_pattern(AtomTable* atom_table, CSSPattern* pattern, const char* css_content, const char* css_content_end, const char** end) {
+    int e;
+    CSSTag tag;
+    if((e=css_parse_tag(atom_table, css_content, css_content_end, (char**)&css_content, &tag))) return e;
+    da_push(pattern, tag);
+    css_content = css_skip(css_content, css_content_end);
+    if(isalnum(*css_content)) todof("Implement space separated tags (patterns)"); 
+    *end = css_content;
+    return 0;
+}
 bool css_match_tag(CSSTag* css_tag, HTMLTag* html_tag) {
     switch(css_tag->kind) {
     case CSSTAG_TAG:
@@ -129,3 +139,4 @@ void css_add_attribute(CSSAttributes* attributes, CSSAttribute attribute) {
     }
     da_push(attributes, attribute);
 }
+
