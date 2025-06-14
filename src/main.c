@@ -367,56 +367,6 @@ int main(int argc, char** argv) {
     HTMLTag root = { 0 };
     AtomTable atom_table = { 0 };
     AtomSet block_elements = { 0 };
-    const char* block_tags[] = {
-        "address",
-        "article",
-        "aside",
-        "blockquote",
-        "br",
-        "dd",
-        "dl",
-        "dt",
-        "fieldset",
-        "figcaption",
-        "figure",
-        "footer",
-        "form",
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "header",
-        "hgroup",
-        "hr",
-        "li",
-        "main",
-        "nav",
-        "ol",
-        "p",
-        "pre",
-        "section",
-        "table",
-        "ul",
-        "details",
-        "dialog",
-        "summary",
-        "menu",
-        "tfoot",
-        "thead",
-        "div",
-        "body",
-        "html",
-    };
-    for(size_t i = 0; i < ARRAY_LEN(block_tags); ++i) {
-        Atom* atom = atom_table_get(&atom_table, block_tags[i], strlen(block_tags[i]));
-        if(!atom) {
-            atom = atom_new_cstr(block_tags[i]);
-            atom_table_insert(&atom_table, atom);
-        }
-        atom_set_insert(&block_elements, atom);
-    }
     const char* void_tags[] = {
         "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"
     };
@@ -507,7 +457,8 @@ int main(int argc, char** argv) {
             fprintf(stderr, "ERROR: Failed to parse default.css: %s\n", csserr_str(e)); 
             return 1;
         }
-        free((void*)default_css);
+        // FIXME: clone everything so we can do:
+        // free((void*)default_css)
     }
     HTMLTag* html = find_child_html_tag(&root, "html");
     HTMLTag* head = find_child_html_tag(html, "head");
