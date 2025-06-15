@@ -9,6 +9,8 @@
 const char* tok_str_map[] = {
     [JS_TOK_INTEGER] = "Integer",
     [JS_TOK_IDENT]   = "Identifier",
+    [JS_TOK_LET]     = "LetKeyword",
+    [JS_TOK_CONST]   = "ConstKeyword",
 };
 void print_token(JSToken tok) {
     if (tok.ttype < 256) {
@@ -49,9 +51,12 @@ int tokenise_js(JSTokens* toks, char* content) {
             char* start = content;
             for (; isalnum(*content) || *content == '_'; content++);
             char* end = content;
-            char* s = strndup(start, (int) (end - start)); // must be freed by caller at some point
-            da_push(toks, ((JSToken) { .ttype=JS_TOK_IDENT, .val=(size_t)s}));
             content--;
+            char* s = strndup(start, (int) (end - start)); // must be freed by caller at some point
+            if (!strcmp(s, "let"))   da_push(toks, ((JSToken) { .ttype=JS_TOK_LET, .val=0 }));
+            if (!strcmp(s, "const")) da_push(toks, ((JSToken) { .ttype=JS_TOK_CONST, .val=0 }));
+            else
+                da_push(toks, ((JSToken) { .ttype=JS_TOK_IDENT, .val=(size_t)s}));
         } else {
             fprintf(stderr, "invalid JS token: %d\n", *content);
             return -1;

@@ -11,6 +11,8 @@ typedef struct {
 typedef enum {
     JS_TOK_INTEGER=256,
     JS_TOK_IDENT,
+    JS_TOK_LET,
+    JS_TOK_CONST,
     JS_TOK_COUNT,
 } JSTokType;
 
