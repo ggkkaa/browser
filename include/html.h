@@ -44,8 +44,11 @@ struct HTMLTag {
     const char* str_content;
     size_t str_content_len;
     HTMLAttributes attributes;
+    // --- CSS ---
     CSSAttributes css_attribs;
     CSSDisplay display;
+    float fontSize;
+    // --- CSS ---
     bool self_closing;
     // Box of the tag 
     size_t x, y;

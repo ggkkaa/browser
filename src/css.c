@@ -156,6 +156,7 @@ void css_add_attribute(CSSAttributes* attributes, CSSAttribute attribute) {
         if(attributes->items[i].name == attribute.name) {
             // TODO: cleanup old attribute if necessary
             attributes->items[i] = attribute;
+            return;
         }
     }
     da_push(attributes, attribute);
