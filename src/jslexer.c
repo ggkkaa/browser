@@ -51,12 +51,11 @@ int tokenise_js(JSTokens* toks, char* content) {
             char* start = content;
             for (; isalnum(*content) || *content == '_'; content++);
             char* end = content;
-            content--;
             char* s = strndup(start, (int) (end - start)); // must be freed by caller at some point
-            if (!strcmp(s, "let"))   da_push(toks, ((JSToken) { .ttype=JS_TOK_LET, .val=0 }));
-            if (!strcmp(s, "const")) da_push(toks, ((JSToken) { .ttype=JS_TOK_CONST, .val=0 }));
-            else
-                da_push(toks, ((JSToken) { .ttype=JS_TOK_IDENT, .val=(size_t)s}));
+            if (!strcmp(s, "let")) da_push(toks, ((JSToken) { .ttype=JS_TOK_LET, .val=0 }));
+            else if (!strcmp(s, "const")) da_push(toks, ((JSToken) { .ttype=JS_TOK_CONST, .val=0 }));
+            else da_push(toks, ((JSToken) { .ttype=JS_TOK_IDENT, .val=(size_t)s}));
+            content--;
         } else {
             fprintf(stderr, "invalid JS token: %d\n", *content);
             return -1;
