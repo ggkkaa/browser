@@ -45,13 +45,13 @@ void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float textFon
                 new_x = tag->x;
                 new_y = max_y;
             }
-            float childFontSize = fontSize;
-            if(strncmp(tag->name->data, "h1", 2) == 0) childFontSize = fontSize * 1.0;
-            else if(strncmp(tag->name->data, "h2", 2) == 0) childFontSize = fontSize * 0.83;
-            else if(strncmp(tag->name->data, "h3", 2) == 0) childFontSize = fontSize * 0.75;
-            else if(strncmp(tag->name->data, "p", 1) == 0 || strncmp(tag->name->data, "strong", 6) == 0) childFontSize = fontSize * 0.66;
-            else if(strncmp(tag->name->data, "li", 2) == 0) childFontSize = fontSize * 0.5;
-            compute_box_html_tag(child, font, fontSize, childFontSize, spacing, &new_x, &new_y);
+            // float childFontSize = fontSize;
+            // if(strncmp(tag->name->data, "h1", 2) == 0) childFontSize = fontSize * 1.0;
+            // else if(strncmp(tag->name->data, "h2", 2) == 0) childFontSize = fontSize * 0.83;
+            // else if(strncmp(tag->name->data, "h3", 2) == 0) childFontSize = fontSize * 0.75;
+            // else if(strncmp(tag->name->data, "p", 1) == 0 || strncmp(tag->name->data, "strong", 6) == 0) childFontSize = fontSize * 0.66;
+            // else if(strncmp(tag->name->data, "li", 2) == 0) childFontSize = fontSize * 0.5;
+            compute_box_html_tag(child, font, fontSize, tag->fontSize, spacing, &new_x, &new_y);
             if(child->x + child->width > max_x) max_x = child->x + child->width;
             if(child->y + child->height > max_y) max_y = child->y + child->height;
         }
@@ -138,13 +138,13 @@ void render_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize
         if(tag->name->len == 5 && strncmp(tag->name->data, "title", 5) == 0) return;
         if(strcmp(tag->name->data, "script") == 0) return;
         for(size_t i = 0; i < tag->children.len; ++i) {
-            float childFontSize = fontSize;
-            if(strncmp(tag->name->data, "h1", 2) == 0) childFontSize = fontSize * 1.0;
-            else if(strncmp(tag->name->data, "h2", 2) == 0) childFontSize = fontSize * 0.83;
-            else if(strncmp(tag->name->data, "h3", 2) == 0) childFontSize = fontSize * 0.75;
-            else if(strncmp(tag->name->data, "p", 1) == 0 || strncmp(tag->name->data, "strong", 6) == 0) childFontSize = fontSize * 0.66;
-            else if(strncmp(tag->name->data, "li", 2) == 0) childFontSize = fontSize * 0.5;
-            render_html_tag(tag->children.items[i], font, fontSize, childFontSize, spacing, scroll_y);
+            // float childFontSize = fontSize;
+            // if(strncmp(tag->name->data, "h1", 2) == 0) childFontSize = fontSize * 1.0;
+            // else if(strncmp(tag->name->data, "h2", 2) == 0) childFontSize = fontSize * 0.83;
+            // else if(strncmp(tag->name->data, "h3", 2) == 0) childFontSize = fontSize * 0.75;
+            // else if(strncmp(tag->name->data, "p", 1) == 0 || strncmp(tag->name->data, "strong", 6) == 0) childFontSize = fontSize * 0.66;
+            // else if(strncmp(tag->name->data, "li", 2) == 0) childFontSize = fontSize * 0.5;
+            render_html_tag(tag->children.items[i], font, fontSize, tag->fontSize, spacing, scroll_y);
         }
     } else {
         float x = tag->x, y = tag->y; 
@@ -235,14 +235,54 @@ void match_css_patterns(HTMLTag* tag, CSSPatternMap* tags) {
         match_css_patterns(tag->children.items[i], tags);
     }
 }
-void apply_css_styles(HTMLTag* tag) {
+int css_parse_float(const char* css_content, const char* css_content_end, const char** end, float* result) {
+    float sign = 1.f;
+    if(css_content < css_content_end && *css_content == '-') {
+        sign = -sign;
+        css_content++;
+    }
+    float whole = 0.f;
+    while(css_content < css_content_end && isdigit(*css_content)) {
+        whole = whole * 10.f + (*css_content - '0');
+        css_content++;
+    }
+    float fract = 0.f;
+    if(css_content < css_content_end && *css_content == '.') {
+        css_content++;
+        while(css_content < css_content_end && isdigit(*css_content)) {
+            fract = (fract + (*css_content - '0')) * 0.1f;
+            css_content++;
+        }
+    }
+    *result = (whole + fract) * sign;
+    *end = css_content;
+    return 0;
+}
+int css_compute_numeric(float rootFontSize, const char* css_content, const char* css_content_end, const char** end, float* result) {
+    int e;
+    *result = 0.0;
+    float number;
+    if((e=css_parse_float(css_content, css_content_end, &css_content, &number)) < 0) return e;
+    const char* unit_str = css_content;
+    while(css_content < css_content_end && isalnum(*css_content)) css_content++;
+    size_t unit_len = css_content - unit_str;
+    if(unit_len == 3 && memcmp(unit_str, "rem", 3) == 0) {
+        *result = number * rootFontSize;
+    } else if (unit_len) {
+        fprintf(stderr, "CSS:WARN "__FILE__":"STRINGIFY1(__LINE__)" Unsupported `%.*s`\n", (int)unit_len, unit_str);
+    }
+    *end = css_content;
+    return 0;
+}
+void apply_css_styles(HTMLTag* tag, float rootFontSize) {
+    tag->fontSize = rootFontSize;
     for(size_t i = 0; i < tag->css_attribs.len; ++i) { 
         CSSAttribute* att = &tag->css_attribs.items[i];
         // TODO: atomise this sheizung
         if(strcmp(att->name->data, "display") == 0) {
-            if(att->args.len > 1) fprintf(stderr, "WARN display argument has more arguments!\n");
+            if(att->args.len > 1) fprintf(stderr, "WARN ignoring extra args to display\n");
             else if(att->args.len < 1) {
-                fprintf(stderr, "ERROR display missing argument!\n");
+                fprintf(stderr, "ERROR too few args to display!\n");
                 continue;
             }
             CSSArg* arg = &att->args.items[i];
@@ -253,12 +293,25 @@ void apply_css_styles(HTMLTag* tag) {
             } else if(arg->value_len == 12 && memcmp(arg->value, "inline-block", 12) == 0) {
                 tag->display = CSSDISPLAY_INLINE_BLOCK;
             }
+        } else if(strcmp(att->name->data, "font-size") == 0) {
+            if(att->args.len > 1) fprintf(stderr, "WARN ignoring extra args to font-size\n");
+            else if(att->args.len < 1) {
+                fprintf(stderr, "ERROR too few args in font-size!\n");
+                continue;
+            }
+            CSSArg* arg = &att->args.items[0];
+            const char* _end;
+            int e = css_compute_numeric(rootFontSize, arg->value, arg->value+arg->value_len, &_end, &tag->fontSize);
+            if(e < 0) {
+                fprintf(stderr, "CSS:ERROR parsing numeric: %s\n", csserr_str(e));
+                continue;
+            }
         } else {
             fprintf(stderr, "WARN "__FILE__":" STRINGIFY1(__LINE__)": Unhandled attribute: `%s`\n", att->name->data);
         }
     }
     for(size_t i = 0; i < tag->children.len; ++i) {
-        apply_css_styles(tag->children.items[i]);
+        apply_css_styles(tag->children.items[i], rootFontSize);
     }
 }
 int css_parse(AtomTable* atom_table, CSSPatternMap* tags, const char* css_content, const char* css_content_end, const char** end) {
@@ -481,9 +534,6 @@ int main(int argc, char** argv) {
     }
     HTMLTag* body = find_child_html_tag(html, "body");
     match_css_patterns(body, &tags);
-    apply_css_styles(body);
-    fixup_tree(body);
-    dump_html_tag(node, 0);
     if (headless) return 0;
     HTMLTag* title = find_child_html_tag(head, "title");
     const char* window_title = "Bikeshed";
@@ -500,6 +550,10 @@ int main(int argc, char** argv) {
         fontSize = 24.0f;
         spacing = fontSize*0.1f;
     }
+    // TODO: fix headless mode
+    apply_css_styles(body, fontSize);
+    fixup_tree(body);
+    dump_html_tag(node, 0);
     SetTargetFPS(60);
     float scroll_y = 0;
     bool show_boxes = false;
