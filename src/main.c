@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <jsengine.h>
-#include <miscutils.h>
+#include <todo.h>
 #include <raylib.h>
 #include <fileutils.h>
 #include <string.h>
@@ -9,6 +9,10 @@
 #include <ctype.h>
 #include <math.h>
 #include <stdint.h>
+#include <atom.h>
+#include <atom_set.h>
+#include "html.h"
+#include <css_pattern_map.h>
 
 Vector2 MeasureCodepointEx(Font font, int codepoint, float fontSize, float spacing) {
     size_t index = GetGlyphIndex(font, codepoint);
@@ -20,172 +24,20 @@ Vector2 MeasureCodepointEx(Font font, int codepoint, float fontSize, float spaci
         fontSize
     };
 }
-#include <atom.h>
-#include <atom_set.h>
-static Atom* atom_new(const char* data, size_t n) {
-    Atom* atom = malloc(sizeof(*atom) + n + 1);
-    assert(atom && "Just buy more RAM");
-    atom->len = n;
-    memcpy(atom->data, data, n);
-    atom->data[n] = '\0';
-    return atom;
-}
-static Atom* atom_new_cstr(const char* data) {
-    return atom_new(data, strlen(data));
-}
 #define W_RATIO 16
 #define H_RATIO 9
 #define SCALE 100
 #define WIDTH  W_RATIO*SCALE
 #define HEIGHT H_RATIO*SCALE
-typedef struct HTMLAttribute HTMLAttribute;
-typedef struct {
-    HTMLAttribute** items;
-    size_t len, cap;
-} HTMLAttributes;
-struct HTMLAttribute {
-    char* key;
-    size_t key_len;
-    char* value; // value is NULL if it has no value
-    size_t value_len;
-};
-typedef struct HTMLTag HTMLTag;
-typedef struct {
-    HTMLTag** items;
-    size_t len, cap;
-} HTMLTags;
-// TODO: refactor this out to CSS
-// and some sort of CSSStyle
-enum {
-    CSSDISPLAY_INLINE,
-    CSSDISPLAY_INLINE_BLOCK,
-    CSSDISPLAY_BLOCK,
+#define ARRAY_LEN(a) (sizeof(a)/sizeof(*a))
 
-    CSSDISPLAY_COUNT
-};
-typedef uint32_t CSSDisplay;
-struct HTMLTag {
-    HTMLTag* parent;
-    Atom* name;
-    HTMLTags children;
-    const char* str_content;
-    size_t str_content_len;
-    HTMLAttributes attributes;
-    CSSDisplay display;
-    bool self_closing;
-    // Box of the tag 
-    size_t x, y;
-    size_t width, height;
-};
-static_assert(HTMLERR_COUNT == 6, "Update htmlerr_strtab");
-const char* htmlerr_strtab[] = {
-    [HTMLERR_TODO] = "Unimplemented",
-    [HTMLERR_EOF]  = "End of File",
-    [HTMLERR_INVALID_TAG] = "Invalid tag format",
-    [HTMLERR_INVALID_ATTRIBUTE]  = "Invalid attribute format",
-    [HTMLERR_INVALID_JS]  = "Invalid JS (see separate error)",
-};
-const char* htmlerr_str(int err) {
-    if(err >= 0) return "OK";
-    err = -err;
-    if(err >= HTMLERR_COUNT) return "Unknown error";
-    return htmlerr_strtab[err];
-}
-
-int parse_attribute(const char* content, HTMLAttribute* att, const char** end) {
-    att->key = (char*)content;
-    while (isalnum(*content) || *content == '_' || *content == '-')
-        content++;
-    att->key_len = content - att->key;
-    while(isspace(*content)) content++;
-    if (*content != '=') {
-        // it has no value
-        *end = content;
-        return 0;
-    }
-    content++;
-    while (isspace(*content)) content++;
-    if (*content != '"') {
-        att->value = (char*)content;
-        while(isalnum(*content)) content++;
-        att->value_len = content - att->value;
-        *end = content;
-        return 0;
-    } 
-    content++;
-    att->value = (char*)content;
-    while(*content && *content != '"') content++;
-    if(*content != '"') return -HTMLERR_EOF;
-    att->value_len = content - att->value;
-    content++;
-    *end = content;
-    return 0;
-}
-
-int html_parse_next_tag(AtomTable* atom_table, const char* content, HTMLTag* tag, char** end) {
-    if(*content == '<') {
-        content++;
-        const char* name = content;
-        while(isalnum(*content)) content++;
-        tag->name = atom_table_get(atom_table, name, content-name);
-        if(!tag->name) {
-            tag->name = atom_new(name, content - name);
-            assert(atom_table_insert(atom_table, tag->name) && "Just buy more RAM");
-        }
-        while (*content && *content != '>' && *content != '/') {
-            while(isspace(*content)) content++;
-            int e;
-            HTMLAttribute *att = (HTMLAttribute*) malloc(sizeof(HTMLAttribute));
-            assert(att && "Just buy more RAM");
-            memset(att, 0, sizeof(*att));
-            if ((e=parse_attribute(content, att, &content)) < 0) return e;
-            da_push(&tag->attributes, att);
-        }
-        if (*content == '/') {
-            if (content[1] != '>') return -HTMLERR_INVALID_TAG;
-            content += 2;
-            *end = (char*) content;
-            tag->self_closing = true;
-            return 0;
-        }
-        tag->self_closing = false;
-        content++;
-        *end = (char*)content;
-        return 0;
-    }
-    if(*content == '\0') return -HTMLERR_EOF;
-    tag->str_content = content;
-    while(*content != '<' && *content) content++;
-    tag->str_content_len = content - tag->str_content;
-    *end = (char*)content;
-    return 0;
-}
-
-//TODO: Handle html comments `<!-- html comment!-->` because it cannot load title in motherfuckingwebsite.html
-void dump_html_tag(HTMLTag* tag, size_t indent) {
-    if(tag->name) {
-        if(tag->name->len == 5 && strncmp(tag->name->data, "style", 5) == 0) return;
-        printf("%*s<%.*s>\n", (int)indent, "", (int)tag->name->len, tag->name->data);
-        for(size_t i = 0; i < tag->children.len; ++i) {
-            dump_html_tag(tag->children.items[i], indent + 4);
-        }
-        printf("%*s</%.*s>\n", (int)indent, "", (int)tag->name->len, tag->name->data);
-    } else {
-        printf("%*s", (int)indent, "");
-        for(size_t i = 0; i < tag->str_content_len; ++i) {
-            char c = tag->str_content[i];
-            if(isgraph(c) || c == ' ') printf("%c", c);
-            else printf("\\x%02X", c);
-        }
-        printf("\n");
-    }
-}
 void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize, float spacing, size_t* cursor_x, size_t* cursor_y) {
     size_t new_x = tag->x = *cursor_x;
     size_t new_y = tag->y = *cursor_y;
     size_t max_x = tag->x;
     size_t max_y = tag->y;
     if(tag->name) {
+        if(strcmp(tag->name->data, "script") == 0) return;
         for(size_t i = 0; i < tag->children.len; ++i) {
             HTMLTag* child = tag->children.items[i];
             // if(child->display == CSSDISPLAY_BLOCK && tag->display == CSSDISPLAY_INLINE) todof("We do not support block inside inline atm: (parent=%.*s, child=%.*s)\n", (int)tag->name->len, tag->name, (int)child->name->len, child->name);
@@ -221,9 +73,9 @@ void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float textFon
                 x = 0;// tag->x;
                 y += textFontSize;
             }
+            if(x + size.x > max_x) max_x = ceilf(x + size.x);
+            if(y + size.y > max_y) max_y = ceilf(y + size.y);
             x += size.x;
-            if(x + size.x > max_x) max_x = x + size.x;
-            if(y + size.y > max_y) max_y = y + size.y;
         }
         new_x = x;
         new_y = y;
@@ -284,6 +136,7 @@ void render_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize
     if(tag->name) {
         if(tag->name->len == 5 && strncmp(tag->name->data, "style", 5) == 0) return;
         if(tag->name->len == 5 && strncmp(tag->name->data, "title", 5) == 0) return;
+        if(strcmp(tag->name->data, "script") == 0) return;
         for(size_t i = 0; i < tag->children.len; ++i) {
             float childFontSize = fontSize;
             if(strncmp(tag->name->data, "h1", 2) == 0) childFontSize = fontSize * 1.0;
@@ -322,6 +175,132 @@ HTMLTag* find_child_html_tag(HTMLTag* tag, const char* name) {
         if(child->name->len == name_len && memcmp(child->name->data, name, name_len) == 0) return child;
     }
     return NULL;
+}
+
+void fixup_tree(HTMLTag* tag){
+    /* 
+        if we encounter blocks inside we need to get them out of children put them
+        after this tag and if there are any spare inline blocks left then create clone
+        of this tag that has rest of spare tags 
+    */
+    for(size_t i = 0; i < tag->children.len; i++){
+        HTMLTag* child = tag->children.items[i];
+        fixup_tree(child);
+        
+        HTMLTag* clone = NULL;
+        if(child->display == CSSDISPLAY_INLINE){
+            for(size_t j = 0; j < child->children.len; j++){
+                if(child->children.items[j]->display == CSSDISPLAY_BLOCK){
+                    if(j == 0){
+                        da_insert(&tag->children, i, child->children.items[j]);
+                        memmove(&child->children.items[0], &child->children.items[1], (--child->children.len)*sizeof(*child->children.items));
+                    }else if(j < child->children.len-1){ // create clone
+                        clone = malloc(sizeof(HTMLTag));
+                        memcpy(clone, child, sizeof(HTMLTag));
+                        clone->children.items = NULL;
+                        clone->children.cap = 0;
+                        clone->children.len = 0;
+                        
+                        for(size_t m = j+1; m < child->children.len; m++){
+                            da_push(&clone->children,child->children.items[m]);
+                        }
+                        child->children.len = j;
+                        da_insert(&tag->children, i+1, child->children.items[j]);
+                    }else{
+                        da_insert(&tag->children, i+1, child->children.items[j]);
+                        child->children.len--;
+                    }
+                    break;
+                }
+            }
+            if(clone) da_insert(&tag->children, i+2, clone);
+        }
+    }
+}
+
+void match_css_patterns(HTMLTag* tag, CSSPatternMap* tags) {
+    if(tags->len == 0) return;
+    CSSPatterns* patterns = css_pattern_map_get(tags, tag->name);
+    if(patterns) {
+        for(size_t i = 0; i < patterns->len; ++i) {
+            CSSPattern* pattern = &patterns->items[i];
+            if(css_match_pattern(pattern->items, pattern->len, tag)) {
+                for(size_t j = 0; j < patterns->attributes.len; ++j) {
+                    css_add_attribute(&tag->css_attribs, patterns->attributes.items[j]);
+                }
+            }
+        }
+    }
+    for(size_t i = 0; i < tag->children.len; ++i) {
+        match_css_patterns(tag->children.items[i], tags);
+    }
+}
+void apply_css_styles(HTMLTag* tag) {
+    for(size_t i = 0; i < tag->css_attribs.len; ++i) { 
+        CSSAttribute* att = &tag->css_attribs.items[i];
+        // TODO: atomise this sheizung
+        if(strcmp(att->name->data, "display") == 0) {
+            if(att->args.len > 1) fprintf(stderr, "WARN display argument has more arguments!\n");
+            else if(att->args.len < 1) {
+                fprintf(stderr, "ERROR display missing argument!\n");
+                continue;
+            }
+            CSSArg* arg = &att->args.items[i];
+            if(arg->value_len == 5 && memcmp(arg->value, "block", 5) == 0) {
+                tag->display = CSSDISPLAY_BLOCK;
+            } else if(arg->value_len == 6 && memcmp(arg->value, "inline", 6) == 0) {
+                tag->display = CSSDISPLAY_INLINE;
+            } else if(arg->value_len == 12 && memcmp(arg->value, "inline-block", 12) == 0) {
+                tag->display = CSSDISPLAY_INLINE_BLOCK;
+            }
+        } else {
+            fprintf(stderr, "WARN "__FILE__":" STRINGIFY1(__LINE__)": Unhandled attribute: `%s`\n", att->name->data);
+        }
+    }
+    for(size_t i = 0; i < tag->children.len; ++i) {
+        apply_css_styles(tag->children.items[i]);
+    }
+}
+int css_parse(AtomTable* atom_table, CSSPatternMap* tags, const char* css_content, const char* css_content_end, const char** end) {
+    for(;;) {
+        css_content = css_skip(css_content, css_content_end);
+        if(css_content >= css_content_end) break;
+        int e;
+        CSSPatterns patterns = { 0 };
+        if((e=css_parse_patterns(atom_table, &patterns, css_content, css_content_end, &css_content)) < 0) {
+            // fprintf(stderr, "CSS:ERROR: parsing patterns: %s\n", csserr_str(e));
+            return e;
+        }
+        if(css_content >= css_content_end || *css_content != '{') {
+            // fprintf(stderr, "CSS:WARN: fok you leather man: `%c`\n", *css_content);
+            return -CSSERR_INVALID_ATTRIBUTE_SYNTAX;
+        }
+        css_content++;
+        for(;;) {
+            css_content = css_skip(css_content, css_content_end);
+            if(css_content >= css_content_end) goto css_end;
+            if(*css_content == '}') {
+                css_content++;
+                break;
+            }
+            CSSAttribute att = { 0 };
+            e = css_parse_attribute(atom_table, css_content, css_content_end, (char**)&css_content, &att);
+            da_push(&patterns.attributes, att);
+            if(e < 0) {
+                // fprintf(stderr, "ERROR %s\n", csserr_str(e));
+                return e;
+            }
+        }
+        for(size_t i = 0; i < patterns.len; ++i) {
+            CSSPattern* pattern = &patterns.items[i];
+            CSSTag* tag = &pattern->items[0];
+            assert(tag->kind == CSSTAG_TAG && "TODO: Other 3 maps (I'm lazy)");
+            css_pattern_map_insert(tags, pattern->items[0].name, patterns);
+        }
+    }
+css_end:
+    *end = css_content;
+    return 0;
 }
 // FIXME: I know strcasecmp exists and we *can* use that on 
 // Unix systems with a flag but for now this is fine
@@ -371,6 +350,7 @@ int main(int argc, char** argv) {
     char* content = content_data;
     bool quirks_mode = true;
     if (rawjs) return run_js(content);
+
     if(strncmp_ci(content, "<!DOCTYPE", 9) == 0) {
         content += 9;
         while(isspace(*content)) content++;
@@ -386,58 +366,38 @@ int main(int argc, char** argv) {
     (void) quirks_mode;
     HTMLTag root = { 0 };
     AtomTable atom_table = { 0 };
-    AtomSet block_elements = { 0 };
-    const char* block_tags[] = {
-        "address",
-        "article",
-        "aside",
-        "blockquote",
-        "br",
-        "dd",
-        "dl",
-        "dt",
-        "fieldset",
-        "figcaption",
-        "figure",
-        "footer",
-        "form",
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "header",
-        "hgroup",
-        "hr",
-        "li",
-        "main",
-        "nav",
-        "ol",
-        "p",
-        "pre",
-        "section",
-        "table",
-        "ul",
-        "details",
-        "dialog",
-        "summary",
-        "menu",
-        "tfoot",
-        "thead",
-        "div",
-        "body",
-        "html",
+    const char* void_tags[] = {
+        "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"
     };
-    for(size_t i = 0; i < sizeof(block_tags)/sizeof(*block_tags); ++i) {
-        Atom* atom = atom_new_cstr(block_tags[i]);
-        atom_table_insert(&atom_table, atom);
-        atom_set_insert(&block_elements, atom);
+    AtomSet void_elements = { 0 };
+    for(size_t i = 0; i < ARRAY_LEN(void_tags); ++i) {
+        Atom* atom = atom_table_get(&atom_table, void_tags[i], strlen(void_tags[i]));
+        if(!atom) {
+            atom = atom_new_cstr(void_tags[i]);
+            atom_table_insert(&atom_table, atom);
+        }
+        atom_set_insert(&void_elements, atom);
     }
     root.name = atom_new("\\root", 5);
     assert(atom_table_insert(&atom_table, root.name) && "Just buy more RAM");
     root.display = CSSDISPLAY_BLOCK;
     HTMLTag* node = &root;
+    // TODO: special handling for those.
+    // I couldn't give a shit for now so :(
+#if 0
+    const char* raw_text_elements_str[] = {
+        "script", "style"
+    };
+    Atom* raw_text_elements[ARRAY_LEN(raw_text_elements)];
+    for(size_t i = 0; i < sizeof(raw_text_elements_str)/sizeof(*raw_text_elements_str); ++i) {
+        Atom* atom = atom_table_get(&atom_table, raw_text_elements_str[i], strlen(raw_text_elements_str[i]));
+        if(!atom) {
+            atom = atom_new_cstr(raw_text_elements_str[i]);
+            atom_table_insert(&atom_table, atom);
+        }
+        raw_text_elements[i] = atom;
+    }
+#endif
     for(;;) {
         while(isspace(*content)) content++;
         if(*content == '\0') break;
@@ -457,13 +417,10 @@ int main(int argc, char** argv) {
         assert(tag && "Just buy more RAM");
         memset(tag, 0, sizeof(*tag));
         int e = html_parse_next_tag(&atom_table, content, tag, &content);
-        if(tag->name && atom_set_get(&block_elements, tag->name)) {
-            tag->display = CSSDISPLAY_BLOCK;
-        }
         if(e == -HTMLERR_EOF) break;
         tag->parent = node; 
         da_push(&node->children, tag);
-        if (!tag->self_closing && tag->name) node = tag;
+        if (!atom_set_get(&void_elements, tag->name) && !tag->self_closing && tag->name) node = tag;
         if(e != 0) {
             fprintf(stderr, "Failed to parse tag: %s\n", htmlerr_str(e));
             return 1;
@@ -481,11 +438,46 @@ int main(int argc, char** argv) {
             ct = ct->parent;
         }
     }
-    dump_html_tag(node, 0);
-    if (headless) return 0;
+    CSSPatternMap tags = { 0 };
+    {
+        const char* default_css_path = "default.css";
+        size_t default_css_size;
+        const char* default_css = read_entire_file(default_css_path, &default_css_size);
+        if(!default_css) {
+            fprintf(stderr, "ERROR: Failed to load `%s`\n", default_css_path);
+            return 1;
+        }
+        const char* default_css_endptr;
+        int e = css_parse(&atom_table, &tags, default_css, default_css+default_css_size, &default_css_endptr);
+        if(e < 0) {
+            fprintf(stderr, "ERROR: Failed to parse default.css: %s\n", csserr_str(e)); 
+            return 1;
+        }
+        // FIXME: clone everything so we can do:
+        // free((void*)default_css)
+    }
     HTMLTag* html = find_child_html_tag(&root, "html");
     HTMLTag* head = find_child_html_tag(html, "head");
+    Atom* style_atom = atom_table_get(&atom_table, "style", 5);
+    if(style_atom && head) {
+        for(size_t i = 0; i < head->children.len; ++i) {
+            HTMLTag* tag = head->children.items[i];
+            if(tag->name == style_atom && tag->children.len > 0) {
+                const char* css_content = tag->children.items[0]->str_content;
+                const char* css_content_end = tag->children.items[0]->str_content + tag->children.items[0]->str_content_len;
+                int e = css_parse(&atom_table, &tags, css_content, css_content_end, &css_content);
+                if(e < 0) {
+                    fprintf(stderr, "CSS:ERROR parsing CSS: %s\n", csserr_str(e));
+                }
+            }
+        }
+    }
     HTMLTag* body = find_child_html_tag(html, "body");
+    match_css_patterns(body, &tags);
+    apply_css_styles(body);
+    fixup_tree(body);
+    dump_html_tag(node, 0);
+    if (headless) return 0;
     HTMLTag* title = find_child_html_tag(head, "title");
     const char* window_title = "Bikeshed";
     if(title && title->children.len && !title->children.items[0]->name) {

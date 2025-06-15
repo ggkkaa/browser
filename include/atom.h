@@ -25,3 +25,5 @@ bool atom_table_reserve(AtomTable* map, size_t extra);
 // Make sure to call atom_table_get before insert to make sure there is no such atom
 bool atom_table_insert(AtomTable* map, Atom* atom);
 Atom* atom_table_get(AtomTable* map, const char* data, size_t data_len);
+Atom* atom_new(const char* data, size_t n);
+Atom* atom_new_cstr(const char* data);

@@ -12,9 +12,9 @@ enum {
     CSSERR_COUNT
 };
 enum {
-    // .foo
-    CSSTAG_ID,
     // #foo
+    CSSTAG_ID,
+    // .foo
     CSSTAG_CLASS,
     // foo
     CSSTAG_TAG,
@@ -37,14 +37,29 @@ typedef struct {
         size_t len, cap;
     } args;
 } CSSAttribute;
+// TODO: convert to hashmap :(
+typedef struct {
+    CSSAttribute* items;
+    size_t len, cap;
+} CSSAttributes;
+void css_add_attribute(CSSAttributes* attributes, CSSAttribute attribute);
 typedef struct {
     CSSTag* items;
     size_t len, cap;
     // TODO: CSSTag inline_buffer[1];
 } CSSPattern;
-
+typedef struct {
+    CSSPattern* items;
+    size_t len, cap;
+    CSSAttributes attributes;
+} CSSPatterns;
 // Skip spaces and comments
-const char* css_skip(const char* content);
+const char* css_skip(const char* content, const char* content_end);
 const char* csserr_str(int err);
-int css_parse_tag(AtomTable* atom_table, const char* content, char** end, CSSTag* tag);
-int css_parse_attribute(AtomTable* atom_table, const char* content, char** end, CSSAttribute* attribute);
+int css_parse_tag(AtomTable* atom_table, const char* content, const char* content_end, char** end, CSSTag* tag);
+int css_parse_attribute(AtomTable* atom_table, const char* content, const char* content_end, char** end, CSSAttribute* att);
+int css_parse_pattern(AtomTable* atom_table, CSSPattern* pattern, const char* css_content, const char* css_content_end, const char** end);
+int css_parse_patterns(AtomTable* atom_table, CSSPatterns* patterns, const char* css_content, const char* css_content_end, const char** end);
+typedef struct HTMLTag HTMLTag;
+bool css_match_tag(CSSTag* css_tag, HTMLTag* html_tag);
+bool css_match_pattern(CSSTag* patterns, size_t patterns_count, HTMLTag* html_tag);

@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
-#include <miscutils.h>
 #include <stddef.h>
 #include <darray.h>
 #include <jsengine.h>

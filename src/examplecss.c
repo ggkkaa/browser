@@ -18,17 +18,18 @@ int cssmain(void) {
     char* content_data = (char*)read_entire_file(example_path, &content_size);
     if(!content_data) return 1;
     const char* content = content_data;
+    const char* content_end = content_data + strlen(content_data);
     AtomTable atom_table = { 0 };
     for(;;) {
-        content = css_skip(content);
+        content = css_skip(content, content_end);
         if(*content == '\0') break;
         CSSTag tag;
         int e;
-        if((e = css_parse_tag(&atom_table, content, (char**)&content, &tag)) < 0) {
+        if((e = css_parse_tag(&atom_table, content, content_end, (char**)&content, &tag)) < 0) {
             fprintf(stderr, "ERROR %s\n", csserr_str(e));
             return 1;
         }
-        content = css_skip(content);
+        content = css_skip(content, content_end);
         if(*content == ',') todof("Implement coma separated tags");
         else if(isalnum(*content)) todof("Implement space separated tags (patterns)");
         else if(*content != '{') { 
@@ -38,13 +39,13 @@ int cssmain(void) {
         content++;
         printf("%s {\n", tag.name->data);
         for(;;) {
-            content = css_skip(content);
+            content = css_skip(content, content_end);
             if(*content == '}') {
                 content++;
                 break;
             }
             CSSAttribute attr = { 0 };
-            e = css_parse_attribute(&atom_table, content, (char**)&content, &attr);
+            e = css_parse_attribute(&atom_table, content, content_end, (char**)&content, &attr);
             if(e < 0) {
                 fprintf(stderr, "ERROR %s\n", csserr_str(e));
                 return 1;

@@ -67,3 +67,15 @@ Atom* atom_table_get(AtomTable* map, const char* data, size_t data_len) {
     }
     return NULL;
 }
+
+Atom* atom_new(const char* data, size_t n) {
+    Atom* atom = malloc(sizeof(*atom) + n + 1);
+    assert(atom && "Just buy more RAM");
+    atom->len = n;
+    memcpy(atom->data, data, n);
+    atom->data[n] = '\0';
+    return atom;
+}
+Atom* atom_new_cstr(const char* data) {
+    return atom_new(data, strlen(data));
+}
