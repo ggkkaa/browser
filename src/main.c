@@ -40,17 +40,10 @@ void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float textFon
         if(strcmp(tag->name->data, "script") == 0) return;
         for(size_t i = 0; i < tag->children.len; ++i) {
             HTMLTag* child = tag->children.items[i];
-            // if(child->display == CSSDISPLAY_BLOCK && tag->display == CSSDISPLAY_INLINE) todof("We do not support block inside inline atm: (parent=%.*s, child=%.*s)\n", (int)tag->name->len, tag->name, (int)child->name->len, child->name);
             if(child->display == CSSDISPLAY_BLOCK) {
                 new_x = tag->x;
                 new_y = max_y;
             }
-            // float childFontSize = fontSize;
-            // if(strncmp(tag->name->data, "h1", 2) == 0) childFontSize = fontSize * 1.0;
-            // else if(strncmp(tag->name->data, "h2", 2) == 0) childFontSize = fontSize * 0.83;
-            // else if(strncmp(tag->name->data, "h3", 2) == 0) childFontSize = fontSize * 0.75;
-            // else if(strncmp(tag->name->data, "p", 1) == 0 || strncmp(tag->name->data, "strong", 6) == 0) childFontSize = fontSize * 0.66;
-            // else if(strncmp(tag->name->data, "li", 2) == 0) childFontSize = fontSize * 0.5;
             compute_box_html_tag(child, font, fontSize, tag->fontSize, spacing, &new_x, &new_y);
             if(child->x + child->width > max_x) max_x = child->x + child->width;
             if(child->y + child->height > max_y) max_y = child->y + child->height;
@@ -138,12 +131,6 @@ void render_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize
         if(tag->name->len == 5 && strncmp(tag->name->data, "title", 5) == 0) return;
         if(strcmp(tag->name->data, "script") == 0) return;
         for(size_t i = 0; i < tag->children.len; ++i) {
-            // float childFontSize = fontSize;
-            // if(strncmp(tag->name->data, "h1", 2) == 0) childFontSize = fontSize * 1.0;
-            // else if(strncmp(tag->name->data, "h2", 2) == 0) childFontSize = fontSize * 0.83;
-            // else if(strncmp(tag->name->data, "h3", 2) == 0) childFontSize = fontSize * 0.75;
-            // else if(strncmp(tag->name->data, "p", 1) == 0 || strncmp(tag->name->data, "strong", 6) == 0) childFontSize = fontSize * 0.66;
-            // else if(strncmp(tag->name->data, "li", 2) == 0) childFontSize = fontSize * 0.5;
             render_html_tag(tag->children.items[i], font, fontSize, tag->fontSize, spacing, scroll_y);
         }
     } else {
