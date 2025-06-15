@@ -158,6 +158,17 @@ int gen_ast(JSTokens toks, ASTBranch *ast) {
     return 0;
 }
 
+// this should do some proper checks
+void print_statement(JSStatement* statement) {
+    switch (statement->type) {
+    case JS_STATEMENT_DEFINE:
+        printf("Define statement (%s %s):\n",
+                (statement->define_statement.is_const) ? "const" : "let",
+                (char*) statement->define_statement.assign_expr->BinOpNode.val1->UnsignedInteger.val);
+        dump_ast(statement->define_statement.assign_expr->BinOpNode.val2, 0);
+    };
+}
+
 int parse_define_statement(JSTokens* toks, JSStatement* statement) {
     statement->type = JS_STATEMENT_DEFINE;
     statement->define_statement.is_const = toks->items[0].ttype == JS_TOK_CONST;
@@ -186,6 +197,7 @@ int js_parse_statement(JSTokens* toks) {
         fprintf(stderr, "Invalid statement type.\n");
         return -1;
     }
+    print_statement(&statement);
     return 0;
 }
 

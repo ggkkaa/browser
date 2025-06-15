@@ -15,12 +15,9 @@ int run_js(char* content) {
     }
     printf("Tokenising complete. Token dump:\n");
     dump_tokens(toks);
-    ASTBranch ast = {0};
-    if (gen_ast(toks, &ast) < 0) {
-        fprintf(stderr, "Failed to parse JS and generate an AST\n");
+    if (js_parse_statement(&toks) < 0) {
+        fprintf(stderr, "Failed to parse JS from toks\n");
         return -1;
     }
-    printf("Done parsing. AST dump:\n");
-    dump_ast(&ast, 0);
     return 0;
 }
