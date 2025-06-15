@@ -241,20 +241,21 @@ int css_parse_float(const char* css_content, const char* css_content_end, const 
         sign = -sign;
         css_content++;
     }
-    float whole = 0.f;
+    float value = 0.f;
     while(css_content < css_content_end && isdigit(*css_content)) {
-        whole = whole * 10.f + (*css_content - '0');
+        value = value * 10.f + (*css_content - '0');
         css_content++;
     }
-    float fract = 0.f;
+    float decimal = 0.1f;
     if(css_content < css_content_end && *css_content == '.') {
         css_content++;
         while(css_content < css_content_end && isdigit(*css_content)) {
-            fract = (fract + (*css_content - '0')) * 0.1f;
+            value += (*css_content - '0') * decimal;
             css_content++;
+            decimal *= 0.1f;
         }
     }
-    *result = (whole + fract) * sign;
+    *result = value * sign;
     *end = css_content;
     return 0;
 }
