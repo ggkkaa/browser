@@ -157,3 +157,37 @@ int gen_ast(JSTokens toks, ASTBranch *ast) {
     }
     return 0;
 }
+
+int parse_define_statement(JSTokens* toks, JSStatement* statement) {
+    statement->type = JS_STATEMENT_DEFINE;
+    statement->define_statement.is_const = toks->items[0].ttype == JS_TOK_CONST;
+    JSTokens assign_tokens = *toks;
+    assign_tokens.items++, assign_tokens.len--;
+    ASTBranch* assign_ast = (ASTBranch*) malloc(sizeof(ASTBranch));
+    if (gen_ast(assign_tokens, assign_ast) < 0) return -1;
+    statement->define_statement.assign_expr = assign_ast;
+    if (assign_ast->type != AST_NODE_BINOP || assign_ast->BinOpNode.op != '=') {
+        fprintf(stderr, "Tried to do let/const define statement with non-assign expression\n");
+        free(assign_ast); // TODO: This doesn't actually free everything allocated within
+                          // the tree. There should really be a destroy_ast_branch() or something.
+        return -1;
+    }
+    return 0;
+}
+
+int js_parse_statement(JSTokens* toks) {
+    JSStatement statement = {0};
+    switch (toks->items[0].ttype) {
+    case JS_TOK_CONST:
+    case JS_TOK_LET:
+        if (parse_define_statement(toks, &statement) < 0) return -1;
+        break;
+    default:
+        fprintf(stderr, "Invalid statement type.\n");
+        return -1;
+    }
+    return 0;
+}
+
+
+

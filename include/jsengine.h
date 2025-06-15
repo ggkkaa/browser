@@ -47,6 +47,18 @@ struct ASTBranch {
     };
 };
 
+typedef struct {
+    enum {
+        JS_STATEMENT_DEFINE,
+    } type;
+    union {
+        struct {
+            bool is_const;
+            ASTBranch *assign_expr;
+        } define_statement;
+    };
+} JSStatement;
+
 int tokenise_js(JSTokens* toks, char* content);
 int gen_ast(JSTokens toks, ASTBranch *ast);
 void dump_tokens(JSTokens toks);
