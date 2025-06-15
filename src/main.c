@@ -225,8 +225,8 @@ void match_css_patterns(HTMLTag* tag, CSSPatternMap* tags) {
         for(size_t i = 0; i < patterns->len; ++i) {
             CSSPattern* pattern = &patterns->items[i];
             if(css_match_pattern(pattern->items, pattern->len, tag)) {
-                for(size_t j = 0; j < patterns->attributes.len; ++j) {
-                    css_add_attribute(&tag->css_attribs, patterns->attributes.items[j]);
+                for(size_t j = 0; j < pattern->attributes.len; ++j) {
+                    css_add_attribute(&tag->css_attribs, pattern->attributes.items[j]);
                 }
             }
         }
@@ -285,7 +285,9 @@ int css_parse(AtomTable* atom_table, CSSPatternMap* tags, const char* css_conten
             }
             CSSAttribute att = { 0 };
             e = css_parse_attribute(atom_table, css_content, css_content_end, (char**)&css_content, &att);
-            da_push(&patterns.attributes, att);
+            for(size_t i = 0; i < patterns.len; ++i) {
+                da_push(&patterns.items[i].attributes, att);
+            }
             if(e < 0) {
                 // fprintf(stderr, "ERROR %s\n", csserr_str(e));
                 return e;
@@ -295,7 +297,12 @@ int css_parse(AtomTable* atom_table, CSSPatternMap* tags, const char* css_conten
             CSSPattern* pattern = &patterns.items[i];
             CSSTag* tag = &pattern->items[0];
             assert(tag->kind == CSSTAG_TAG && "TODO: Other 3 maps (I'm lazy)");
-            css_pattern_map_insert(tags, pattern->items[0].name, patterns);
+            CSSPatterns* result_ps = css_pattern_map_get(tags, tag->name);
+            if(!result_ps) {
+                css_pattern_map_insert(tags, tag->name, (CSSPatterns){0});
+                result_ps = css_pattern_map_get(tags, tag->name);
+            }
+            da_push(result_ps, *pattern);
         }
     }
 css_end:
