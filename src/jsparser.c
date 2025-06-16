@@ -28,6 +28,9 @@ void dump_ast(ASTBranch *ast, int depth) {
     case AST_NODE_IDENT:
         PRINT_SPACES(depth); printf("-> Identifier(%s)\n", (char*) ast->UnsignedInteger.val);
         break;
+    case AST_NODE_STRLIT:
+        PRINT_SPACES(depth); printf("-> StringLiteral(`%s`)\n", (char*) ast->UnsignedInteger.val);
+        break;
     case AST_NODE_BINOP:
         PRINT_SPACES(depth); printf("-> BinOpNode(%c):\n", ast->BinOpNode.op);
         dump_ast(ast->BinOpNode.val1, depth + 4);
@@ -90,6 +93,12 @@ int gen_ast(JSTokens toks, ASTBranch *ast) {
             } else if (toks.items[i].ttype == JS_TOK_IDENT) {
                 *ast = (ASTBranch) {
                     .type = AST_NODE_IDENT,
+                    .UnsignedInteger = { .val=toks.items[i].val },
+                };
+                return 0;
+            } else if (toks.items[i].ttype == JS_TOK_STRLIT) {
+                *ast = (ASTBranch) {
+                    .type = AST_NODE_STRLIT,
                     .UnsignedInteger = { .val=toks.items[i].val },
                 };
                 return 0;
@@ -211,6 +220,7 @@ int js_parse_statement(JSTokens* toks) {
         break;
     case JS_TOK_INTEGER:
     case JS_TOK_IDENT:
+    case JS_TOK_STRLIT:
     case '-':
     case '+':
         if (parse_expression_statement(toks, &statement) < 0) return -1;

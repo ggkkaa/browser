@@ -27,6 +27,7 @@ typedef enum {
     AST_NODE_UNARYOP,
     AST_NODE_UNSIGNED_INT,
     AST_NODE_IDENT,
+    AST_NODE_STRLIT,
 } ASTNodeType;
 
 typedef struct ASTBranch ASTBranch;
