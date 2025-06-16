@@ -11,6 +11,7 @@ const char* tok_str_map[] = {
     [JS_TOK_IDENT]   = "Identifier",
     [JS_TOK_LET]     = "LetKeyword",
     [JS_TOK_CONST]   = "ConstKeyword",
+    [JS_TOK_STRLIT]  = "StringLiteral",
 };
 void print_token(JSToken tok) {
     if (tok.ttype < 256) {
@@ -20,8 +21,10 @@ void print_token(JSToken tok) {
         printf("(InvalidToken)");
     } else {
         printf("(%s: ", tok_str_map[tok.ttype]);
-        if (tok.ttype == JS_TOK_IDENT) printf("%s)", (char*) tok.val);
-        else printf("%zu)", tok.val);
+        if (tok.ttype == JS_TOK_IDENT || tok.ttype == JS_TOK_STRLIT)
+            printf("`%s`)", (char*) tok.val);
+        else
+            printf("%zu)", tok.val);
     }
 }
 
@@ -54,8 +57,16 @@ int tokenise_js(JSTokens* toks, char* content) {
             char* s = strndup(start, (int) (end - start)); // must be freed by caller at some point
             if (!strcmp(s, "let")) da_push(toks, ((JSToken) { .ttype=JS_TOK_LET, .val=0 }));
             else if (!strcmp(s, "const")) da_push(toks, ((JSToken) { .ttype=JS_TOK_CONST, .val=0 }));
-            else da_push(toks, ((JSToken) { .ttype=JS_TOK_IDENT, .val=(size_t)s}));
+            else da_push(toks, ((JSToken) { .ttype=JS_TOK_IDENT, .val=(size_t)s }));
             content--;
+        } else if (*content == '"' || *content == '\'') {
+            char opening_quote = *content; // single or double quote?
+            content++;
+            char* start = content;
+            while (*content && (*content != opening_quote)) content++; // TODO escape support
+            char* end = content;
+            char* s = strndup(start, (int) (end - start)); // must be freed by caller at some point
+            da_push(toks, ((JSToken) { .ttype=JS_TOK_STRLIT, .val=(size_t)s }));
         } else {
             fprintf(stderr, "invalid JS token: %d\n", *content);
             return -1;

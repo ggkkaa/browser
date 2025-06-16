@@ -13,6 +13,7 @@ typedef enum {
     JS_TOK_IDENT,
     JS_TOK_LET,
     JS_TOK_CONST,
+    JS_TOK_STRLIT,
     JS_TOK_COUNT,
 } JSTokType;
 
