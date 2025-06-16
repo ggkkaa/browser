@@ -15,10 +15,6 @@ int run_js(char* content) {
     }
     printf("Tokenising complete. Token dump:\n");
     dump_tokens(toks);
-    //if (js_parse_statement(&toks) < 0) {
-    //    fprintf(stderr, "Failed to parse JS from toks\n");
-    //    return -1;
-    //}
     if (js_parse(&toks) < 0) {
         fprintf(stderr, "Failed to parse JS from toks\n");
         return -1;
