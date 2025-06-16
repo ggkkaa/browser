@@ -29,8 +29,8 @@ const char* css_skip(const char* content, const char* content_end) {
             content += 2;
             // FIXME: This is technically invalid but I don't care.
             // Fuck you leather man
-            while(content < content_end && content[0] == '*' && content[1] == '/') content++;
-            if(*content == '\0') break;
+            while(content < content_end && (content[0] != '*' || content[1] != '/')) content++;
+            if(content >= content_end) break;
             content += 2;
             continue;
         }
