@@ -179,7 +179,6 @@ int parse_define_statement(JSTokens* toks, JSStatement* statement) {
     statement->define_statement.is_const = toks->items[0].ttype == JS_TOK_CONST;
     JSTokens assign_tokens = *toks;
     assign_tokens.items++, assign_tokens.len--;
-    dump_tokens(assign_tokens);
     ASTBranch* assign_ast = (ASTBranch*) malloc(sizeof(ASTBranch));
     if (gen_ast(assign_tokens, assign_ast) < 0) return -1;
     statement->define_statement.assign_expr = assign_ast;
