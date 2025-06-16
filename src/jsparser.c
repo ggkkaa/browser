@@ -207,5 +207,18 @@ int js_parse_statement(JSTokens* toks) {
     return 0;
 }
 
+int js_parse(JSTokens* toks) {
+    size_t start = 0;
+    for (size_t i = 0; i < toks->len; i++) {
+        if (toks->items[i].ttype != ';') continue;
 
+        JSTokens statement_toks = *toks;
+        statement_toks.items += start;
+        statement_toks.len = i - start;
+        if (js_parse_statement(&statement_toks) < 0) return -1;
 
+        start = i + 1;
+        if (toks->items[start].ttype == '\n') start++;
+    }
+    return 0;
+}
