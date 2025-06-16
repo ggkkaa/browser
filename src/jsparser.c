@@ -168,6 +168,10 @@ void print_statement(JSStatement* statement) {
                 (char*) statement->define_statement.assign_expr->BinOpNode.val1->UnsignedInteger.val);
         dump_ast(statement->define_statement.assign_expr->BinOpNode.val2, 0);
         break;
+    case JS_STATEMENT_EXPRESSION:
+        printf("Expression statement:\n");
+        dump_ast(statement->expression_statement, 0);
+        break;
     default:
         printf("Invalid statement.\n");
     };
@@ -191,12 +195,25 @@ int parse_define_statement(JSTokens* toks, JSStatement* statement) {
     return 0;
 }
 
+int parse_expression_statement(JSTokens* toks, JSStatement* statement) {
+    statement->type = JS_STATEMENT_EXPRESSION;
+    statement->expression_statement = (ASTBranch*) malloc(sizeof(ASTBranch));
+    if (gen_ast(*toks, statement->expression_statement) < 0) return -1;
+    return 0;
+}
+
 int js_parse_statement(JSTokens* toks) {
     JSStatement statement = {0};
-    switch (toks->items[0].ttype) {
+    switch ((int) toks->items[0].ttype) {
     case JS_TOK_CONST:
     case JS_TOK_LET:
         if (parse_define_statement(toks, &statement) < 0) return -1;
+        break;
+    case JS_TOK_INTEGER:
+    case JS_TOK_IDENT:
+    case '-':
+    case '+':
+        if (parse_expression_statement(toks, &statement) < 0) return -1;
         break;
     default:
         fprintf(stderr, "Invalid statement type.\n");

@@ -50,12 +50,14 @@ struct ASTBranch {
 typedef struct {
     enum {
         JS_STATEMENT_DEFINE,
+        JS_STATEMENT_EXPRESSION,
     } type;
     union {
         struct {
             bool is_const;
             ASTBranch *assign_expr;
         } define_statement;
+        ASTBranch* expression_statement;
     };
 } JSStatement;
 
