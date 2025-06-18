@@ -1,4 +1,6 @@
 #include <jsengine.h>
+#include <assert.h>
+#include <darray.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,10 +42,34 @@ void dump_ast(ASTBranch *ast, int depth) {
         PRINT_SPACES(depth); printf("-> UnaryOpNode(%c):\n", ast->UnaryOp.op);
         dump_ast(ast->UnaryOp.val, depth + 4);
         break;
+    case AST_NODE_FUNC_CALL:
+        PRINT_SPACES(depth); printf("-> FunctionCall(`%s`), args:\n", ast->FunctionCall.ident);
+        for (size_t i = 0; i < ast->FunctionCall.len; i++)
+            dump_ast(&ast->FunctionCall.items[i], depth + 4);
+        break;
     default:
         PRINT_SPACES(depth); printf("-> Invalid node\n");
         break;
     };
+}
+
+int parse_funct_call_args(JSTokens* toks, size_t off, ASTBranch* funct_call_ast_branch) {
+    for (size_t i = off; i < toks->len; i++) {
+        size_t paren_depth = 0;
+        size_t start = i;
+        while (i < toks->len && (paren_depth || (toks->items[i].ttype != ',' && toks->items[i].ttype != ')'))) {
+            if      (toks->items[i].ttype == '(') paren_depth++;
+            else if (toks->items[i].ttype == ')') paren_depth--;
+            i++;
+        }
+        JSTokens these_toks = *toks;
+        these_toks.items += start;
+        these_toks.len = i - start;
+        ASTBranch arg = {0};
+        if (gen_ast(these_toks, &arg) < 0) return -1;
+        da_push(&funct_call_ast_branch->FunctionCall, arg);
+    }
+    return 0;
 }
 
 static ssize_t find_xth_tok(size_t x, JSTokType tok, JSTokens toks) {
@@ -58,11 +84,23 @@ static ssize_t find_xth_tok(size_t x, JSTokType tok, JSTokens toks) {
 #define INIT_TOK_PREC 1000 // there should really never actually be an operation precedence
                            // this high
 int gen_ast(JSTokens toks, ASTBranch *ast) {
-    // go through and find the operation with the lowest precedence
+    // go through and find the operation with the lowest precedence, in the outermost parentheses possible
     size_t min_tok_precedence = INIT_TOK_PREC;
     size_t min_tok_idx=0, min_tok_paren_depth=0;
     size_t paren_depth = min_tok_paren_depth = 0;
+    bool funct_call_only = toks.len >= 2 && toks.items[0].ttype == JS_TOK_IDENT && toks.items[1].ttype == '(';
     for (size_t i = 0; i < toks.len; i++) {
+        if (toks.items[i].ttype == JS_TOK_IDENT && i < toks.len-1 && toks.items[i+1].ttype == '(') {
+            i += 2;
+            size_t inner_paren_depth = 1;
+            while (inner_paren_depth && i < toks.len) {
+                if (toks.items[i++].ttype == '(') inner_paren_depth++;
+                else if (toks.items[i++].ttype == ')') inner_paren_depth--;
+            }
+            i--;
+            continue;
+        }
+        if (i == toks.len-1) funct_call_only = false;
         if      (toks.items[i].ttype == '(') paren_depth++;
         else if (toks.items[i].ttype == ')') {
             if (!paren_depth) {
@@ -81,7 +119,11 @@ int gen_ast(JSTokens toks, ASTBranch *ast) {
         min_tok_idx = i;
         min_tok_paren_depth = paren_depth;
     }
-    if (min_tok_precedence == INIT_TOK_PREC) {
+    if (funct_call_only) {
+        ast->type = AST_NODE_FUNC_CALL;
+        ast->FunctionCall.ident = (char*) toks.items[0].val;
+        if (parse_funct_call_args(&toks, 2, ast) < 0) return -1;
+    } else if (min_tok_precedence == INIT_TOK_PREC) {
         for (size_t i = 0; i < toks.len; i++) {
             if (toks.items[i].ttype == '(' || toks.items[i].ttype == ')') continue;
             else if (toks.items[i].ttype == JS_TOK_INTEGER) {

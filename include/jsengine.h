@@ -28,6 +28,7 @@ typedef enum {
     AST_NODE_UNSIGNED_INT,
     AST_NODE_IDENT,
     AST_NODE_STRLIT,
+    AST_NODE_FUNC_CALL,
 } ASTNodeType;
 
 typedef struct ASTBranch ASTBranch;
@@ -46,6 +47,11 @@ struct ASTBranch {
         struct {
             uint64_t val;
         } UnsignedInteger;
+        struct {
+            char* ident;
+            size_t len, cap;  // <--|-- args
+            ASTBranch* items; // <--|
+        } FunctionCall;
     };
 };
 
@@ -70,3 +76,4 @@ int run_js(char* content);
 void dump_ast(ASTBranch *ast, int depth);
 int js_parse_statement(JSTokens* toks);
 int js_parse(JSTokens* toks);
+void print_token(JSToken tok);
