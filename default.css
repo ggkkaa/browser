@@ -39,15 +39,15 @@ form {
 }
 h1 {
     display: block;
-    font-size: 1rem;
+    font-size: 2rem;
 }
 h2 {
     display: block;
-    font-size: 0.83rem;
+    font-size: 1.5rem;
 }
 h3 {
     display: block;
-    font-size: 0.75rem;
+    font-size: 1.3rem;
 }
 h4 {
     display: block
@@ -69,7 +69,6 @@ hr {
 }
 li {
     display: block;
-    font-size: 0.5rem;
 }
 main {
     display: block
@@ -82,7 +81,6 @@ ol {
 }
 p {
     display: block;
-    font-size: 0.66rem;
 }
 strong {
     font-size: 0.66rem;

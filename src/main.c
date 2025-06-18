@@ -531,11 +531,11 @@ int main(int argc, char** argv) {
     }
     InitWindow(WIDTH, HEIGHT, window_title);
     Font font = LoadFont("fonts/iosevka/iosevka-bold.ttf");
-    float fontSize = 32.0f;
+    float fontSize = 24.0f;
     float spacing = fontSize*0.1f;
     if (font.texture.id == 0) {
         font = GetFontDefault();
-        fontSize = 24.0f;
+        fontSize = 18.0f;
         spacing = fontSize*0.1f;
     }
     // TODO: fix headless mode
