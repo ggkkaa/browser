@@ -137,7 +137,12 @@ bool css_match_tag(CSSTag* css_tag, HTMLTag* html_tag) {
     case CSSTAG_TAG:
         return html_tag->name == css_tag->name;
     case CSSTAG_ID:
-        todof("match id");
+        for (size_t i = 0; i < html_tag->attributes.len; ++i) {
+            if (html_tag->attributes.items[i]->key_len == 2 && memcmp(html_tag->attributes.items[i]->key, "id", 2) == 0) {
+                return strncmp(html_tag->attributes.items[i]->value, css_tag->name->data, css_tag->name->len) == 0;
+            }
+        }
+        return false;
     case CSSTAG_CLASS:
         todof("match class");
     default:
