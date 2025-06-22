@@ -206,7 +206,6 @@ void fixup_tree(HTMLTag* tag){
 }
 
 void match_css_patterns(AtomTable* atom_table, HTMLTag* tag, CSSPatternMaps* selector_maps) {
-    //if(selector_maps->class_map.len == 0 || selector_maps->id_map.len == 0 || selector_maps->tag_map.len == 0) return;
     CSSPatterns* patterns = css_pattern_map_get(&selector_maps->maps[CSSTAG_TAG], tag->name);
     if(patterns) {
         for(size_t i = 0; i < patterns->len; ++i) {
@@ -367,7 +366,6 @@ int css_parse(AtomTable* atom_table, CSSPatternMaps* selector_maps, const char* 
         for(size_t i = 0; i < patterns.len; ++i) {
             CSSPattern* pattern = &patterns.items[i];
             CSSTag* tag = &pattern->items[0];
-            //assert((tag->kind == CSSTAG_TAG || tag->kind == CSSTAG_ID) && "TODO: Other 3 maps (I'm lazy)");
             CSSPatterns* result_ps;
             switch (tag->kind)
             {
@@ -542,7 +540,6 @@ int main(int argc, char** argv) {
             ct = ct->parent;
         }
     }
-    //CSSPatternMap tags = { 0 };
     CSSPatternMaps selector_maps = { 0 };
     {
         const char* default_css_path = "default.css";
