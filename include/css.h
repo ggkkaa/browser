@@ -18,6 +18,7 @@ enum {
     CSSTAG_CLASS,
     // foo
     CSSTAG_TAG,
+    CSSTAG_COUNT,
 };
 typedef struct AtomTable AtomTable;
 typedef struct Atom Atom;
