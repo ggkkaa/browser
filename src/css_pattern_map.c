@@ -3,15 +3,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define CSS_PATERN_MAP_ALLOC malloc
-#define CSS_PATERN_MAP_DEALLOC(ptr, n) free(ptr)
+#define CSS_PATTERN_MAP_ALLOC malloc
+#define CSS_PATTERN_MAP_DEALLOC(ptr, n) free(ptr)
 
-#define CSS_PATERN_MAP_BUCKET_ALLOC   malloc
-#define CSS_PATERN_MAP_BUCKET_DEALLOC free
+#define CSS_PATTERN_MAP_BUCKET_ALLOC   malloc
+#define CSS_PATTERN_MAP_BUCKET_DEALLOC free
 bool css_pattern_map_reserve(CSSPatternMap* map, size_t extra) {
     if(map->len + extra > map->buckets.len) {
         size_t ncap = map->buckets.len*2 + extra;
-        CSSPatternMapBucket** newbuckets = CSS_PATERN_MAP_ALLOC(sizeof(*newbuckets)*ncap);
+        CSSPatternMapBucket** newbuckets = CSS_PATTERN_MAP_ALLOC(sizeof(*newbuckets)*ncap);
         if(!newbuckets) return false;
         memset(newbuckets, 0, sizeof(*newbuckets) * ncap);
         for(size_t i = 0; i < map->buckets.len; ++i) {
@@ -25,7 +25,7 @@ bool css_pattern_map_reserve(CSSPatternMap* map, size_t extra) {
                 oldbucket = next;
             }
         }
-        CSS_PATERN_MAP_DEALLOC(map->buckets.items, map->buckets.cap * sizeof(*map->buckets.items));
+        CSS_PATTERN_MAP_DEALLOC(map->buckets.items, map->buckets.cap * sizeof(*map->buckets.items));
         map->buckets.items = newbuckets;
         map->buckets.len = ncap;
     }
@@ -35,7 +35,7 @@ bool css_pattern_map_insert(CSSPatternMap* map, Atom* name, CSSPatterns patterns
     if(!css_pattern_map_reserve(map, 1)) return false;
     size_t hash = ((size_t)name) % map->buckets.len;
     CSSPatternMapBucket* into = map->buckets.items[hash];
-    CSSPatternMapBucket* bucket = CSS_PATERN_MAP_BUCKET_ALLOC(sizeof(CSSPatternMapBucket));
+    CSSPatternMapBucket* bucket = CSS_PATTERN_MAP_BUCKET_ALLOC(sizeof(CSSPatternMapBucket));
     if(!bucket) return false;
     bucket->next = into;
     bucket->name = name;
