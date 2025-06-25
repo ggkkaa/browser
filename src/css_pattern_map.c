@@ -55,3 +55,9 @@ CSSPatterns* css_pattern_map_get(CSSPatternMap* map, Atom* name) {
     }
     return NULL;
 }
+CSSPatterns* css_pattern_map_get_or_insert_empty(CSSPatternMap* map, Atom* name) {
+    CSSPatterns* patterns = css_pattern_map_get(map, name);
+    if(patterns) return patterns;
+    css_pattern_map_insert(map, name, (CSSPatterns){0});
+    return css_pattern_map_get(map, name);
+}

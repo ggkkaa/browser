@@ -22,3 +22,5 @@ typedef struct {
 bool css_pattern_map_reserve(CSSPatternMap* map, size_t extra);
 bool css_pattern_map_insert(CSSPatternMap* map, Atom* name, CSSPatterns patterns);
 CSSPatterns* css_pattern_map_get(CSSPatternMap* map, Atom* name);
+
+CSSPatterns* css_pattern_map_get_or_insert_empty(CSSPatternMap* map, Atom* name);
