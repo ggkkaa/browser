@@ -205,9 +205,19 @@ void fixup_tree(HTMLTag* tag){
     }
 }
 
-void match_css_patterns(HTMLTag* tag, CSSPatternMap* tags) {
-    if(tags->len == 0) return;
-    CSSPatterns* patterns = css_pattern_map_get(tags, tag->name);
+void match_css_patterns(HTMLTag* tag, CSSPatternMaps* selector_maps) {
+    CSSPatterns* patterns = css_pattern_map_get(&selector_maps->maps[CSSTAG_TAG], tag->name);
+    if(patterns) {
+        for(size_t i = 0; i < patterns->len; ++i) {
+            CSSPattern* pattern = &patterns->items[i];
+            if(css_match_pattern(pattern->items, pattern->len, tag)) {
+                for(size_t j = 0; j < pattern->attributes.len; ++j) {
+                    css_add_attribute(&tag->css_attribs, pattern->attributes.items[j]);
+                }
+            }
+        }
+    }
+    patterns = css_pattern_map_get(&selector_maps->maps[CSSTAG_ID], tag->id);
     if(patterns) {
         for(size_t i = 0; i < patterns->len; ++i) {
             CSSPattern* pattern = &patterns->items[i];
@@ -219,7 +229,7 @@ void match_css_patterns(HTMLTag* tag, CSSPatternMap* tags) {
         }
     }
     for(size_t i = 0; i < tag->children.len; ++i) {
-        match_css_patterns(tag->children.items[i], tags);
+        match_css_patterns(tag->children.items[i], selector_maps);
     }
 }
 int css_parse_float(const char* css_content, const char* css_content_end, const char** end, float* result) {
@@ -302,7 +312,7 @@ void apply_css_styles(HTMLTag* tag, float rootFontSize) {
         apply_css_styles(tag->children.items[i], rootFontSize);
     }
 }
-int css_parse(AtomTable* atom_table, CSSPatternMap* tags, const char* css_content, const char* css_content_end, const char** end) {
+int css_parse(AtomTable* atom_table, CSSPatternMaps* selector_maps, const char* css_content, const char* css_content_end, const char** end) {
     for(;;) {
         css_content = css_skip(css_content, css_content_end);
         if(css_content >= css_content_end) break;
@@ -337,18 +347,25 @@ int css_parse(AtomTable* atom_table, CSSPatternMap* tags, const char* css_conten
         for(size_t i = 0; i < patterns.len; ++i) {
             CSSPattern* pattern = &patterns.items[i];
             CSSTag* tag = &pattern->items[0];
-            assert(tag->kind == CSSTAG_TAG && "TODO: Other 3 maps (I'm lazy)");
-            CSSPatterns* result_ps = css_pattern_map_get(tags, tag->name);
-            if(!result_ps) {
-                css_pattern_map_insert(tags, tag->name, (CSSPatterns){0});
-                result_ps = css_pattern_map_get(tags, tag->name);
-            }
-            da_push(result_ps, *pattern);
+            da_push(css_pattern_map_get_or_insert_empty(&selector_maps->maps[tag->kind], tag->name), *pattern);
         }
     }
 css_end:
     *end = css_content;
     return 0;
+}
+static void set_id_and_class_fields(AtomTable* atom_table, HTMLTag* tag) {
+    for (size_t i = 0; i < tag->attributes.len; ++i) {
+        if(tag->attributes.items[i]->key_len == 2 && memcmp(tag->attributes.items[i]->key, "id", 2) == 0) {
+            HTMLAttribute* att = tag->attributes.items[i];
+            atom_table_insert(atom_table, atom_new(att->value, att->value_len));
+            tag->id = atom_table_get(atom_table, att->value, att->value_len);
+        } else if(tag->attributes.items[i]->key_len == 5 && memcmp(tag->attributes.items[i]->key, "class", 5) == 0) {
+            HTMLAttribute* att = tag->attributes.items[i];
+            atom_table_insert(atom_table, atom_new(att->value, att->value_len));
+            tag->class = atom_table_get(atom_table, att->value, att->value_len);
+        }
+    }
 }
 // FIXME: I know strcasecmp exists and we *can* use that on 
 // Unix systems with a flag but for now this is fine
@@ -486,7 +503,7 @@ int main(int argc, char** argv) {
             ct = ct->parent;
         }
     }
-    CSSPatternMap tags = { 0 };
+    CSSPatternMaps selector_maps = { 0 };
     {
         const char* default_css_path = "default.css";
         size_t default_css_size;
@@ -496,7 +513,7 @@ int main(int argc, char** argv) {
             return 1;
         }
         const char* default_css_endptr;
-        int e = css_parse(&atom_table, &tags, default_css, default_css+default_css_size, &default_css_endptr);
+        int e = css_parse(&atom_table, &selector_maps, default_css, default_css+default_css_size, &default_css_endptr);
         if(e < 0) {
             fprintf(stderr, "ERROR: Failed to parse default.css: %s\n", csserr_str(e)); 
             return 1;
@@ -513,7 +530,7 @@ int main(int argc, char** argv) {
             if(tag->name == style_atom && tag->children.len > 0) {
                 const char* css_content = tag->children.items[0]->str_content;
                 const char* css_content_end = tag->children.items[0]->str_content + tag->children.items[0]->str_content_len;
-                int e = css_parse(&atom_table, &tags, css_content, css_content_end, &css_content);
+                int e = css_parse(&atom_table, &selector_maps, css_content, css_content_end, &css_content);
                 if(e < 0) {
                     fprintf(stderr, "CSS:ERROR parsing CSS: %s\n", csserr_str(e));
                 }
@@ -521,7 +538,8 @@ int main(int argc, char** argv) {
         }
     }
     HTMLTag* body = find_child_html_tag(html, "body");
-    match_css_patterns(body, &tags);
+    set_id_and_class_fields(&atom_table, body);
+    match_css_patterns(body, &selector_maps);
     if (headless) return 0;
     HTMLTag* title = find_child_html_tag(head, "title");
     const char* window_title = "Bikeshed";

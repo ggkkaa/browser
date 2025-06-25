@@ -40,6 +40,8 @@ typedef uint32_t CSSDisplay;
 struct HTMLTag {
     HTMLTag* parent;
     Atom* name;
+    Atom* class;
+    Atom* id;
     HTMLTags children;
     const char* str_content;
     size_t str_content_len;

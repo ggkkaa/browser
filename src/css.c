@@ -137,9 +137,9 @@ bool css_match_tag(CSSTag* css_tag, HTMLTag* html_tag) {
     case CSSTAG_TAG:
         return html_tag->name == css_tag->name;
     case CSSTAG_ID:
-        todof("match id");
+        return html_tag->id == css_tag->name;
     case CSSTAG_CLASS:
-        todof("match class");
+        return html_tag->class == css_tag->name;
     default:
         assert(false && "unreachable");
     }
