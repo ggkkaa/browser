@@ -347,38 +347,7 @@ int css_parse(AtomTable* atom_table, CSSPatternMaps* selector_maps, const char* 
         for(size_t i = 0; i < patterns.len; ++i) {
             CSSPattern* pattern = &patterns.items[i];
             CSSTag* tag = &pattern->items[0];
-            CSSPatterns* result_ps;
-            switch (tag->kind)
-            {
-            case CSSTAG_TAG:
-                result_ps = css_pattern_map_get(&selector_maps->maps[CSSTAG_TAG], tag->name);
-                if(!result_ps) {
-                    css_pattern_map_insert(&selector_maps->maps[CSSTAG_TAG], tag->name, (CSSPatterns){0});
-                    result_ps = css_pattern_map_get(&selector_maps->maps[CSSTAG_TAG], tag->name);
-                }
-                break;
-            
-            case CSSTAG_CLASS:
-                result_ps = css_pattern_map_get(&selector_maps->maps[CSSTAG_CLASS], tag->name);
-                if(!result_ps) {
-                    css_pattern_map_insert(&selector_maps->maps[CSSTAG_CLASS], tag->name, (CSSPatterns){0});
-                    result_ps = css_pattern_map_get(&selector_maps->maps[CSSTAG_CLASS], tag->name);
-                }
-                break;
-
-            case CSSTAG_ID:
-                result_ps = css_pattern_map_get(&selector_maps->maps[CSSTAG_ID], tag->name);
-                if(!result_ps) {
-                    css_pattern_map_insert(&selector_maps->maps[CSSTAG_ID], tag->name, (CSSPatterns){0});
-                    result_ps = css_pattern_map_get(&selector_maps->maps[CSSTAG_ID], tag->name);
-                }
-                break;
-
-            default:
-                fprintf(stderr, "Invalid CSS tag pattern found!");
-                continue;
-            }
-            da_push(result_ps, *pattern);
+            da_push(css_pattern_map_get_or_insert_empty(&selector_maps->maps[tag->kind], tag->name), *pattern);
         }
     }
 css_end:
