@@ -388,10 +388,9 @@ css_end:
 static void set_id_and_class_fields(AtomTable* atom_table, HTMLTag* tag) {
     for (size_t i = 0; i < tag->attributes.len; ++i) {
         if(tag->attributes.items[i]->key_len == 2 && memcmp(tag->attributes.items[i]->key, "id", 2) == 0) {
-            const char* quote = strchr(tag->attributes.items[i]->value, '"');
-            size_t len = quote - tag->attributes.items[i]->value;
-            atom_table_insert(atom_table, atom_new(tag->attributes.items[i]->value, len));
-            tag->id = atom_table_get(atom_table, tag->attributes.items[i]->value, len);
+            HTMLAttribute* att = tag->attributes.items[i];
+            atom_table_insert(atom_table, atom_new(att->value, att->value_len));
+            tag->id = atom_table_get(atom_table, att->value, att->value_len);
         }
     }
 }
