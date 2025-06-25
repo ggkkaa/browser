@@ -205,7 +205,7 @@ void fixup_tree(HTMLTag* tag){
     }
 }
 
-void match_css_patterns(AtomTable* atom_table, HTMLTag* tag, CSSPatternMaps* selector_maps) {
+void match_css_patterns(HTMLTag* tag, CSSPatternMaps* selector_maps) {
     CSSPatterns* patterns = css_pattern_map_get(&selector_maps->maps[CSSTAG_TAG], tag->name);
     if(patterns) {
         for(size_t i = 0; i < patterns->len; ++i) {
@@ -217,38 +217,19 @@ void match_css_patterns(AtomTable* atom_table, HTMLTag* tag, CSSPatternMaps* sel
             }
         }
     }
-
-    for (size_t i = 0; i < tag->attributes.len; ++i) {
-        if(strncmp(tag->attributes.items[i]->key, "id", 2) == 0) {
-            const char* quote = strchr(tag->attributes.items[i]->value, '"');
-            size_t len = quote - tag->attributes.items[i]->value;
-
-            char* id = malloc(len + 1);
-            if(!id) {
-                printf("Not enough RAM. Please download some more RAM.");
-                break;
-            }
-
-            strncpy(id, tag->attributes.items[i]->value, len);
-
-            printf("Element has id %s\n", id);
-
-            Atom* atom = atom_table_get(atom_table, id, strlen(id));
-            CSSPatterns* patterns = css_pattern_map_get(&selector_maps->maps[CSSTAG_ID], atom);
-            if(patterns) {
-                for(size_t i = 0; i < patterns->len; ++i) {
-                    CSSPattern* pattern = &patterns->items[i];
-                    if(css_match_pattern(pattern->items, pattern->len, tag)) {
-                        for(size_t j = 0; j < pattern->attributes.len; ++j) {
-                            css_add_attribute(&tag->css_attribs, pattern->attributes.items[j]);
-                        }
-                    }
+    patterns = css_pattern_map_get(&selector_maps->maps[CSSTAG_ID], tag->id);
+    if(patterns) {
+        for(size_t i = 0; i < patterns->len; ++i) {
+            CSSPattern* pattern = &patterns->items[i];
+            if(css_match_pattern(pattern->items, pattern->len, tag)) {
+                for(size_t j = 0; j < pattern->attributes.len; ++j) {
+                    css_add_attribute(&tag->css_attribs, pattern->attributes.items[j]);
                 }
             }
         }
     }
     for(size_t i = 0; i < tag->children.len; ++i) {
-        match_css_patterns(atom_table, tag->children.items[i], selector_maps);
+        match_css_patterns(tag->children.items[i], selector_maps);
     }
 }
 int css_parse_float(const char* css_content, const char* css_content_end, const char** end, float* result) {
@@ -403,6 +384,16 @@ int css_parse(AtomTable* atom_table, CSSPatternMaps* selector_maps, const char* 
 css_end:
     *end = css_content;
     return 0;
+}
+static void set_id_and_class_fields(AtomTable* atom_table, HTMLTag* tag) {
+    for (size_t i = 0; i < tag->attributes.len; ++i) {
+        if(tag->attributes.items[i]->key_len == 2 && memcmp(tag->attributes.items[i]->key, "id", 2) == 0) {
+            const char* quote = strchr(tag->attributes.items[i]->value, '"');
+            size_t len = quote - tag->attributes.items[i]->value;
+            atom_table_insert(atom_table, atom_new(tag->attributes.items[i]->value, len));
+            tag->id = atom_table_get(atom_table, tag->attributes.items[i]->value, len);
+        }
+    }
 }
 // FIXME: I know strcasecmp exists and we *can* use that on 
 // Unix systems with a flag but for now this is fine
@@ -575,7 +566,8 @@ int main(int argc, char** argv) {
         }
     }
     HTMLTag* body = find_child_html_tag(html, "body");
-    match_css_patterns(&atom_table, body, &selector_maps);
+    set_id_and_class_fields(&atom_table, body);
+    match_css_patterns(body, &selector_maps);
     if (headless) return 0;
     HTMLTag* title = find_child_html_tag(head, "title");
     const char* window_title = "Bikeshed";
