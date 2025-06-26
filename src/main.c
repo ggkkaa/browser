@@ -358,12 +358,18 @@ static void set_id_and_class_fields(AtomTable* atom_table, HTMLTag* tag) {
     for (size_t i = 0; i < tag->attributes.len; ++i) {
         if(tag->attributes.items[i]->key_len == 2 && memcmp(tag->attributes.items[i]->key, "id", 2) == 0) {
             HTMLAttribute* att = tag->attributes.items[i];
-            atom_table_insert(atom_table, atom_new(att->value, att->value_len));
             tag->id = atom_table_get(atom_table, att->value, att->value_len);
+            if(!tag->id) {
+                atom_table_insert(atom_table, atom_new(att->value, att->value_len));
+                tag->id = atom_table_get(atom_table, att->value, att->value_len);
+            }
         } else if(tag->attributes.items[i]->key_len == 5 && memcmp(tag->attributes.items[i]->key, "class", 5) == 0) {
             HTMLAttribute* att = tag->attributes.items[i];
-            atom_table_insert(atom_table, atom_new(att->value, att->value_len));
             tag->class = atom_table_get(atom_table, att->value, att->value_len);
+            if(!tag->class) {
+                atom_table_insert(atom_table, atom_new(att->value, att->value_len));
+                tag->class = atom_table_get(atom_table, att->value, att->value_len);
+            }
         }
     }
 }
