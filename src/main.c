@@ -14,6 +14,7 @@
 #include "html.h"
 #include <css_pattern_map.h>
 #include <layouter/layouter.h>
+#include <debug/box_render.h>
 
 #define W_RATIO 16
 #define H_RATIO 9
@@ -23,37 +24,6 @@
 #define ARRAY_LEN(a) (sizeof(a)/sizeof(*a))
 
 
-static size_t color_n = 0;
-void render_box_html_tag(HTMLTag* tag, float scroll_y) {
-    static Color colors[] = {
-        GRAY,     
-        GOLD,     
-        PINK,     
-        SKYBLUE,  
-        RED,      
-        MAROON,   
-        GREEN,    
-        ORANGE,   
-        LIME,     
-        DARKGREEN,
-        BLUE,     
-        DARKBLUE, 
-        PURPLE,   
-        VIOLET,   
-        DARKPURPLE,
-        BEIGE,    
-        BROWN,    
-        DARKBROWN,
-        WHITE,    
-        BLANK,    
-        MAGENTA,  
-        RAYWHITE, 
-    };
-    DrawRectangle(tag->x, ((float)tag->y) + scroll_y, tag->width, tag->height, colors[color_n++]);
-    for(size_t i = 0; i < tag->children.len; ++i) {
-        render_box_html_tag(tag->children.items[i], scroll_y);
-    }
-}
 void render_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize, float spacing, float scroll_y) {
     if(tag->name) {
         if(tag->name->len == 5 && strncmp(tag->name->data, "style", 5) == 0) return;
@@ -504,7 +474,7 @@ int main(int argc, char** argv) {
         BeginDrawing();
         ClearBackground(RAYWHITE);
         size_t x = 0, y = 0;
-        color_n = 0;
+        render_box_color_n = 0;
         if(body) {
             compute_box_html_tag(body, font, fontSize, fontSize, spacing, &x, &y);
             if(show_boxes) render_box_html_tag(body, scroll_y);
