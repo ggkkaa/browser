@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
     size_t src_prefix_len = strlen(src_dir)+1;
     if(!walk_directory(&dirs, &c_sources, src_dir)) return 1;
     for(size_t i = 0; i < dirs.count; ++i) {
-        if(!mkdir_if_not_exists(temp_sprintf("%s/bikeshed/%s", bindir, dirs.items[i]))) return 1;
+        if(!mkdir_if_not_exists(temp_sprintf("%s/bikeshed/%s", bindir, dirs.items[i] + src_prefix_len))) return 1;
     }
     File_Paths objs = { 0 };
     String_Builder stb = { 0 };
