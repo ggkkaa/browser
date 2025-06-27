@@ -89,22 +89,22 @@ int css_compute_color(const char* css_content, const char* css_content_end, cons
             const char* name;
             CSSColor color;
         } named_colors[] = {
-            { "black"  , 0xFF000000 },
-            { "silver" , 0xFFC0C0C0 },
-            { "gray"   , 0xFF808080 },
+            { "black"  , 0x000000FF },
+            { "silver" , 0xC0C0C0FF },
+            { "gray"   , 0x808080FF },
             { "white"  , 0xFFFFFFFF },
-            { "maroon" , 0xFF800000 },
-            { "red"    , 0xFFFF0000 },
-            { "purple" , 0xFF800080 },
-            { "fuchsia", 0xFFFF00FF },
-            { "green"  , 0xFF008000 },
-            { "lime"   , 0xFF00FF00 },
-            { "olive"  , 0xFF808000 },
-            { "yellow" , 0xFFFFFF00 },
-            { "navy"   , 0xFF000080 },
-            { "blue"   , 0xFF0000FF },
-            { "teal"   , 0xFF008080 },
-            { "aqua"   , 0xFF00FFFF },
+            { "maroon" , 0x800000FF },
+            { "red"    , 0xFF0000FF },
+            { "purple" , 0x800080FF },
+            { "fuchsia", 0xFF00FFFF },
+            { "green"  , 0x008000FF },
+            { "lime"   , 0x00FF00FF },
+            { "olive"  , 0x808000FF },
+            { "yellow" , 0xFFFF00FF },
+            { "navy"   , 0x000080FF },
+            { "blue"   , 0x0000FFFF },
+            { "teal"   , 0x008080FF },
+            { "aqua"   , 0x00FFFFFF },
         };
         for(size_t i = 0; i < sizeof(named_colors)/sizeof(*named_colors); ++i) {
             // TODO: precompute strlen(named_colors[i])
