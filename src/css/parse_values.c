@@ -2,6 +2,7 @@
 #include <todo.h>
 #include <string.h>
 #include <ctype.h>
+#include <css/parser.h>
 #include <css/log.h>
 
 int css_parse_float(const char* css_content, const char* css_content_end, const char** end, float* result) {
@@ -41,6 +42,81 @@ int css_compute_numeric(float rootFontSize, const char* css_content, const char*
     } else if (unit_len) {
         dcss_warn("Unsupported unit `%.*s`", (int)unit_len, unit_str);
     }
+    *end = css_content;
+    return 0;
+}
+
+uint8_t css_parse_decimal_byte(const char* css_content, const char* css_content_end, const char** end) {
+    uint8_t value = 0;
+    while(css_content < css_content_end && isdigit(*css_content)) value = (value * 10) + (*css_content++) - '0';
+    *end = css_content;
+    return value;
+}
+static uint8_t xdigit2value(int digit) {
+    return digit <= '9' ? digit - '0' : (tolower(digit) - 'a' + 10);
+}
+int css_compute_color(const char* css_content, const char* css_content_end, const char** end, CSSColor* result) {
+    const char* word = css_content;
+    while(css_content < css_content_end && isalnum(css_content[0])) css_content++;
+    size_t word_len = css_content - word;
+    CSSColor value = 0;
+    if(word_len == 3 && memcmp(word, "rgb", 3) == 0) {
+        css_content = css_skip(css_content, css_content_end);
+        if(css_content >= css_content_end || *css_content++ != '(') return -CSSERR_INVALID_ARG_SYNTAX;
+        for(size_t i = 0; i < 3; ++i) {
+            css_content = css_skip(css_content, css_content_end);
+            if(i > 0) {
+                if(css_content >= css_content_end || *css_content++ != ',') return -CSSERR_INVALID_ARG_SYNTAX;
+                css_content = css_skip(css_content, css_content_end);
+            }
+            value = (value << 8) | css_parse_decimal_byte(css_content, css_content_end, &css_content);
+        }
+        if(css_content >= css_content_end || *css_content++ != ')') return -CSSERR_INVALID_ARG_SYNTAX;
+        value = (value << 8) | 0xFF;
+    } else if (word_len == 0 && word + 4 <= css_content_end && *word == '#') {
+        if(!isxdigit(css_content[1]) || !isxdigit(css_content[2]) || !isxdigit(css_content[3])) return -CSSERR_INVALID_ARG_SYNTAX;
+        uint8_t rb = xdigit2value(css_content[1]);
+        uint8_t gb = xdigit2value(css_content[2]);
+        uint8_t bb = xdigit2value(css_content[3]);
+        value = 
+              (rb << 28) | (rb << 24)
+            | (gb << 20) | (gb << 16)
+            | (bb << 12) | (bb << 8) 
+            | 0xFF;
+        css_content += 4;
+    } else {
+        static struct {
+            const char* name;
+            CSSColor color;
+        } named_colors[] = {
+            { "black"  , 0xFF000000 },
+            { "silver" , 0xFFC0C0C0 },
+            { "gray"   , 0xFF808080 },
+            { "white"  , 0xFFFFFFFF },
+            { "maroon" , 0xFF800000 },
+            { "red"    , 0xFFFF0000 },
+            { "purple" , 0xFF800080 },
+            { "fuchsia", 0xFFFF00FF },
+            { "green"  , 0xFF008000 },
+            { "lime"   , 0xFF00FF00 },
+            { "olive"  , 0xFF808000 },
+            { "yellow" , 0xFFFFFF00 },
+            { "navy"   , 0xFF000080 },
+            { "blue"   , 0xFF0000FF },
+            { "teal"   , 0xFF008080 },
+            { "aqua"   , 0xFF00FFFF },
+        };
+        for(size_t i = 0; i < sizeof(named_colors)/sizeof(*named_colors); ++i) {
+            // TODO: precompute strlen(named_colors[i])
+            if(word_len == strlen(named_colors[i].name) && memcmp(word, named_colors[i].name, word_len) == 0) {
+                value = named_colors[i].color;
+                goto end;
+            }
+        }
+        dcss_warn("Unsupported color word `%.*s`", (int)word_len, word);
+    } 
+end:
+    *result = value;
     *end = css_content;
     return 0;
 }
