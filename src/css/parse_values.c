@@ -2,6 +2,7 @@
 #include <todo.h>
 #include <string.h>
 #include <ctype.h>
+#include <css/log.h>
 
 int css_parse_float(const char* css_content, const char* css_content_end, const char** end, float* result) {
     float sign = 1.f;
@@ -38,7 +39,7 @@ int css_compute_numeric(float rootFontSize, const char* css_content, const char*
     if(unit_len == 3 && memcmp(unit_str, "rem", 3) == 0) {
         *result = number * rootFontSize;
     } else if (unit_len) {
-        fprintf(stderr, "CSS:WARN "__FILE__":"STRINGIFY1(__LINE__)" Unsupported `%.*s`\n", (int)unit_len, unit_str);
+        dcss_warn("Unsupported unit `%.*s`", (int)unit_len, unit_str);
     }
     *end = css_content;
     return 0;

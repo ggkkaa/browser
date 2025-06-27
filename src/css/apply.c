@@ -49,7 +49,7 @@ void apply_css_styles(HTMLTag* tag, float rootFontSize) {
                 dcss_warn("Ignoring %zu number of arguments to font: property", att->args.len);
             }
         } else if(strcmp(att->name->data, "font-size") == 0) {
-            if(att->args.len > 1) fprintf(stderr, "WARN ignoring extra args to font-size\n");
+            if(att->args.len > 1) dcss_warn("ignoring extra args to font-size");
             else if(att->args.len < 1) {
                 dcss_err("too few args in font-size!");
                 continue;
