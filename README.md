@@ -36,10 +36,7 @@ Bikeshed was somewhat the effect of our group's talks about the [Ladybird](https
 On top of that though, we also just wanna have a fun community project to work on! This is quite an interesting project, and having a good ol' read of the CSS+HTML5 specifications is always fun :)
 
 ## Contributing
-In our early stages, there's not much to contribute to as we're on a pretty linear path and so having other things is an organisational mess. But we will (hopefully) soon be taking contributions! Some basic ground rules:
- - Open an issue *before* beginning work on the change, ask if you should do it, and wait for us to assign it to you.
- - Pull requests are welcome however trivial things like spelling mistakes **will not be merged**. Open an issue if it is a big problem.
- - Try to follow the general code style we use. For the most part we're not super strict with code style but at least attempt to stay similar to the rest of the codebase. Use 4 spaces for indentation.
+Checkout [CONTRIBUTE.md](#CONTRIBUTE.md)
 
 ## Licensing
 Bikeshed is under the Mozilla Public License 2.0. See `LICENSE` for more information. If you contribute to Bikeshed, you agree to your code being licensed under MPL 2.0 as well.
