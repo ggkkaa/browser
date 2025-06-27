@@ -36,7 +36,7 @@ enum {
     CSSDISPLAY_COUNT
 };
 typedef uint32_t CSSDisplay;
-#include "css.h"
+#include "css/parser.h"
 struct HTMLTag {
     HTMLTag* parent;
     Atom* name;

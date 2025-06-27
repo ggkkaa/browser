@@ -5,7 +5,7 @@
 #include <darray.h>
 #include <assert.h>
 #include <ctype.h>
-#include <css.h>
+#include <css/parser.h>
 #include <atom.h>
 
 #define STRINGIFY0(x) # x

@@ -12,7 +12,7 @@
 #include <atom.h>
 #include <atom_set.h>
 #include "html.h"
-#include <css_pattern_map.h>
+#include <css/pattern_map.h>
 #include <layouter/layouter.h>
 #include <debug/box_render.h>
 #include <render/html_tag.h>
