@@ -24,6 +24,8 @@ void apply_css_styles(HTMLTag* tag, float rootFontSize) {
                 tag->display = CSSDISPLAY_INLINE;
             } else if(arg->value_len == 12 && memcmp(arg->value, "inline-block", 12) == 0) {
                 tag->display = CSSDISPLAY_INLINE_BLOCK;
+            } else {
+                dcss_err("display: %.*s", (int)arg->value_len, arg->value);
             }
         } else if (strcmp(att->name->data, "font") == 0) {
             switch(att->args.len) {
