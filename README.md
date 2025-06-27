@@ -36,7 +36,7 @@ Bikeshed was somewhat the effect of our group's talks about the [Ladybird](https
 On top of that though, we also just wanna have a fun community project to work on! This is quite an interesting project, and having a good ol' read of the CSS+HTML5 specifications is always fun :)
 
 ## Contributing
-Checkout [CONTRIBUTE.md](#CONTRIBUTE.md)
+Checkout [CONTRIBUTE.md](CONTRIBUTE.md)
 
 ## Licensing
 Bikeshed is under the Mozilla Public License 2.0. See `LICENSE` for more information. If you contribute to Bikeshed, you agree to your code being licensed under MPL 2.0 as well.
