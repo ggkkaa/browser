@@ -25,7 +25,9 @@ void set_id_and_class_fields(AtomTable* atom_table, HTMLTag* tag);
 - Use of global variables is generally discouraged (with exceptions to things like debug utilities that aim for convenience of use for example, that won't be included in a full release)
 
 Pull requests will **NOT be accepted** if they don't follow the aforementioned standard.
+
 Pull requests will **NOT be accepted** if they intentionally clutter up the codebase and overcomplicate things. We are aiming for a balance between simplicity and versitility.
+
 Pull requests are **unlikely to be accepted** if they add unnecessary external dependencies - the project is trying to be very self contained which means minimal dependency on external libraries (which is not something *other browsers* aim for)
 
 ## Reporting bugs + Feature suggestions
