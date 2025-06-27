@@ -76,11 +76,16 @@ int css_parse_attribute(AtomTable* atom_table, const char* content, const char* 
     content = css_skip(content, content_end);
     if(*content != ':') return -CSSERR_INVALID_ATTRIBUTE_SYNTAX;
     content++;
+    size_t oparens = 0;
     for(;;) {
         content = css_skip(content, content_end);
         CSSArg arg;
         arg.value = (char*)content;
-        while(content < content_end && !isspace(*content) && (content[0] != '/' || content[1] != '*') && *content != ',' && *content != '}' && *content != ';') content++;
+        while(content < content_end && ((!isspace(*content) && (content[0] != '/' || content[1] != '*') && *content != ',' && *content != '}' && *content != ';') || oparens > 0)) {
+            if(*content == '(') oparens++;
+            if(*content == ')' && oparens-- == 0) return -CSSERR_INVALID_ARG_SYNTAX;
+            content++;
+        }
         if(content == arg.value) return -CSSERR_INVALID_ARG_SYNTAX;
         arg.value_len = content-arg.value;
         content = css_skip(content, content_end);
