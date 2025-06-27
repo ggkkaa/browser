@@ -14,6 +14,7 @@
 #include <html.h>
 #include <css/pattern_map.h>
 #include <css/parse_values.h>
+#include <css/match.h>
 #include <layouter/layouter.h>
 #include <debug/box_render.h>
 #include <render/html_tag.h>
@@ -39,34 +40,6 @@ HTMLTag* find_child_html_tag(HTMLTag* tag, const char* name) {
     return NULL;
 }
 
-
-void match_css_patterns(HTMLTag* tag, CSSPatternMaps* selector_maps) {
-    CSSPatterns* patterns = css_pattern_map_get(&selector_maps->maps[CSSTAG_TAG], tag->name);
-    if(patterns) {
-        for(size_t i = 0; i < patterns->len; ++i) {
-            CSSPattern* pattern = &patterns->items[i];
-            if(css_match_pattern(pattern->items, pattern->len, tag)) {
-                for(size_t j = 0; j < pattern->attributes.len; ++j) {
-                    css_add_attribute(&tag->css_attribs, pattern->attributes.items[j]);
-                }
-            }
-        }
-    }
-    patterns = css_pattern_map_get(&selector_maps->maps[CSSTAG_ID], tag->id);
-    if(patterns) {
-        for(size_t i = 0; i < patterns->len; ++i) {
-            CSSPattern* pattern = &patterns->items[i];
-            if(css_match_pattern(pattern->items, pattern->len, tag)) {
-                for(size_t j = 0; j < pattern->attributes.len; ++j) {
-                    css_add_attribute(&tag->css_attribs, pattern->attributes.items[j]);
-                }
-            }
-        }
-    }
-    for(size_t i = 0; i < tag->children.len; ++i) {
-        match_css_patterns(tag->children.items[i], selector_maps);
-    }
-}
 void apply_css_styles(HTMLTag* tag, float rootFontSize) {
     tag->fontSize = rootFontSize;
     for(size_t i = 0; i < tag->css_attribs.len; ++i) { 

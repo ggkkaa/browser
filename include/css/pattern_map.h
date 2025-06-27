@@ -15,7 +15,7 @@ typedef struct {
     } buckets;
     size_t len;
 } CSSPatternMap;
-typedef struct {
+typedef struct CSSPatternMaps {
     CSSPatternMap maps[CSSTAG_COUNT];
 } CSSPatternMaps;
 
