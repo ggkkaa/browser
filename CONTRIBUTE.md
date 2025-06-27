@@ -20,6 +20,7 @@ CSSPatterns* css_pattern_map_get_or_insert_empty(CSSPatternMap* map, Atom* name)
 void set_id_and_class_fields(AtomTable* atom_table, HTMLTag* tag);
 #define ATOM_TABLE_BUCKET_ALLOC malloc
 ```
+- When writing headers try to forward declare structs as much as possible - that way we reduce the number of dependencies in the .d files which also speeds up compilation time
 - Functions may only do *one thing* (following standard programming principles).
 - Use of global variables is generally discouraged (with exceptions to things like debug utilities that aim for convenience of use for example, that won't be included in a full release)
 
