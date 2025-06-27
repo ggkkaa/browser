@@ -31,7 +31,7 @@ Pull requests will **NOT be accepted** if they intentionally clutter up the code
 Pull requests are **unlikely to be accepted** if they add unnecessary external dependencies - the project is trying to be very self contained which means minimal dependency on external libraries (which is not something *other browsers* aim for)
 
 ## Reporting bugs + Feature suggestions
-After finding any bugs or wanting to suggest any features, you should first **make an issue** describing the thing you want to have done in the brow.ser 
+After finding any bugs or wanting to suggest any features, you should first **make an issue** describing the thing you want to have done in the browser.
 If you want to work towards this feature/bug fix yourself you can **ask for permission in the issue itself**, after which you may be assigned it.
 
 Only if **an issue has been assigned to you**, you may proceed with **a pull request**. Pull requests without prior issues, while not necessarily prohibited
