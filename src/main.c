@@ -274,7 +274,7 @@ int main(int argc, char** argv) {
     }
     HTMLTag* body = find_child_html_tag(html, "body");
     set_id_and_class_fields(&atom_table, body);
-    match_css_patterns(body, &selector_maps);
+    match_css_patterns(html, &selector_maps);
     if (headless) return 0;
     HTMLTag* title = find_child_html_tag(head, "title");
     const char* window_title = "Bikeshed";
@@ -292,7 +292,7 @@ int main(int argc, char** argv) {
         spacing = fontSize*0.1f;
     }
     // TODO: fix headless mode
-    apply_css_styles(body, fontSize);
+    apply_css_styles(html, fontSize);
     fixup_tree(body);
     dump_html_tag(node, 0);
     SetTargetFPS(60);
