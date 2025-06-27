@@ -45,11 +45,29 @@ void apply_css_styles(HTMLTag* tag, float rootFontSize) {
                     dcss_todo("parse font-size/line height");
                     continue;
                 }
-
             } break;
             default:
                 dcss_warn("Ignoring %zu number of arguments to font: property", att->args.len);
             }
+        } else if (strcmp(att->name->data, "background-color") == 0) {
+            if(att->args.len > 1) dcss_warn("ignoring extra args to background-color");
+            else if(att->args.len < 1) {
+                dcss_err("too few args to background-color!");
+                continue;
+            }
+            CSSArg color_arg = att->args.items[0];
+            CSSColor color = 0;
+            const char* css_start = color_arg.value;
+            const char* css_end = color_arg.value + color_arg.value_len;
+            int e = css_compute_color(css_start, css_end, &css_start, &color);
+            if(e < 0) {
+                dcss_err("parsing color of background-color: %s", csserr_str(e));
+                continue;
+            }
+            if(css_start != css_end) {
+                dcss_warn("Ignoring extra characters in background-color");
+            }
+            dcss_warn("background-color: `%.*s` => %08X", (int)color_arg.value_len, color_arg.value, color);
         } else if(strcmp(att->name->data, "font-size") == 0) {
             if(att->args.len > 1) dcss_warn("ignoring extra args to font-size");
             else if(att->args.len < 1) {
