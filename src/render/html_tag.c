@@ -5,6 +5,7 @@
 #include <atom.h>
 
 void render_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize, float spacing, float scroll_y) {
+    DrawRectangle(tag->x, tag->y, tag->width, tag->height, GetColor(tag->background_color));
     if(tag->name) {
         if(tag->name->len == 5 && strncmp(tag->name->data, "style", 5) == 0) return;
         if(tag->name->len == 5 && strncmp(tag->name->data, "title", 5) == 0) return;

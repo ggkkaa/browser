@@ -298,11 +298,14 @@ int main(int argc, char** argv) {
     SetTargetFPS(60);
     float scroll_y = 0;
     bool show_boxes = false;
+    if(!html->background_color) html->background_color = ColorToInt(RAYWHITE);
+    fprintf(stderr, "html->background_color=%08X\n", html->background_color);
     while(!WindowShouldClose()) {
         scroll_y += GetMouseWheelMove()*16.0;
         if(IsKeyReleased(KEY_F4)) show_boxes = !show_boxes;
         BeginDrawing();
-        ClearBackground(RAYWHITE);
+        ClearBackground(GetColor(html->background_color));
+        
         size_t x = 0, y = 0;
         render_box_color_n = 0;
         if(body) {
