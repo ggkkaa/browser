@@ -275,7 +275,6 @@ int main(int argc, char** argv) {
     HTMLTag* body = find_child_html_tag(html, "body");
     set_id_and_class_fields(&atom_table, body);
     match_css_patterns(html, &selector_maps);
-    if (headless) return 0;
     HTMLTag* title = find_child_html_tag(head, "title");
     const char* window_title = "Bikeshed";
     if(title && title->children.len && !title->children.items[0]->name) {
@@ -291,10 +290,10 @@ int main(int argc, char** argv) {
         fontSize = 18.0f;
         spacing = fontSize*0.1f;
     }
-    // TODO: fix headless mode
     apply_css_styles(html, fontSize);
     fixup_tree(body);
     dump_html_tag(node, 0);
+    if (headless) return 0;
     SetTargetFPS(60);
     float scroll_y = 0;
     bool show_boxes = false;
