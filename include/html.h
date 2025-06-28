@@ -52,6 +52,7 @@ struct HTMLTag {
     CSSDisplay display;
     float fontSize;
     CSSColor background_color;
+    CSSColor color;
     // --- CSS ---
     bool self_closing;
     // Box of the tag 

@@ -216,6 +216,7 @@ int main(int argc, char** argv) {
         HTMLTag* tag = malloc(sizeof(*tag));
         assert(tag && "Just buy more RAM");
         memset(tag, 0, sizeof(*tag));
+        tag->color = ColorToInt(BLACK);
         int e = html_parse_next_tag(&atom_table, content, tag, &content);
         if(e == -HTMLERR_EOF) break;
         tag->parent = node; 

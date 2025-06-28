@@ -28,7 +28,7 @@ void render_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize
                 x = 0;// tag->x;
                 y += textFontSize;
             }
-            DrawTextCodepoint(font, c, (Vector2){x, y + scroll_y}, textFontSize, BLACK);
+            DrawTextCodepoint(font, c, (Vector2){x, y + scroll_y}, textFontSize, GetColor(tag->color));
             x += size.x;
         }
     }
