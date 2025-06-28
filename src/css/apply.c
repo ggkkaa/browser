@@ -84,6 +84,7 @@ void apply_css_styles(HTMLTag* tag, float rootFontSize) {
             if(css_start != css_end) {
                 dcss_warn("Ignoring extra characters in color");
             }
+            // dcss_warn("color: `%.*s` => %08X for %s", (int)color_arg.value_len, color_arg.value, tag->color, tag->name->data);
         } else if(strcmp(att->name->data, "font-size") == 0) {
             if(att->args.len > 1) dcss_warn("ignoring extra args to font-size");
             else if(att->args.len < 1) {
