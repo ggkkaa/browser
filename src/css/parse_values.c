@@ -39,9 +39,11 @@ int css_compute_numeric(float rootFontSize, const char* css_content, const char*
     size_t unit_len = css_content - unit_str;
     if(unit_len == 3 && memcmp(unit_str, "rem", 3) == 0) {
         *result = number * rootFontSize;
+    } else if (unit_len == 2 && memcmp(unit_str, "px", 2) == 0) {
+        *result = number;
     } else if (unit_len) {
         dcss_warn("Unsupported unit `%.*s`", (int)unit_len, unit_str);
-    }
+    } else *result = number;
     *end = css_content;
     return 0;
 }
