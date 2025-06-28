@@ -43,7 +43,7 @@ const char* read_entire_file(const char* path, size_t* size) {
             FS_DEALLOC(result, buf_size);
             defer_return(NULL);
         }
-        // TODO: Think about checking with feof
+        if (feof(f)) break;
     }
     result[buf_size-1] = '\0';
 DEFER:
