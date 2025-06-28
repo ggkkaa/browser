@@ -293,7 +293,10 @@ int main(int argc, char** argv) {
     apply_css_styles(html, fontSize);
     fixup_tree(body);
     dump_html_tag(node, 0);
-    if (headless) return 0;
+    if (headless) {
+        CloseWindow();
+        return 0;
+    }
     SetTargetFPS(60);
     float scroll_y = 0;
     bool show_boxes = false;
