@@ -1,6 +1,5 @@
 #pragma once
-// TODO: Remove MeasureCodepointEx from here dumb bitch :3
-// And remove Font and raylib entirely
-#include <layouter/layouter.h>
-#include <stddef.h>
-void render_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize, float spacing, float scroll_y);
+typedef struct BSFont BSFont;
+typedef struct BSRenderer BSRenderer;
+typedef struct HTMLTag HTMLTag;
+void render_html_tag(BSRenderer* renderer, HTMLTag* tag, BSFont* font, float fontSize, float textFontSize, float spacing, float scroll_y);

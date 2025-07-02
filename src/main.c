@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <jsengine.h>
 #include <todo.h>
-#include <raylib.h>
 #include <fileutils.h>
 #include <string.h>
 #include <darray.h>
@@ -20,7 +19,7 @@
 #include <debug/box_render.h>
 #include <render/html_tag.h>
 #include <fixup.h>
-
+#include <bsrenderer/renderer.h>
 
 #define W_RATIO 16
 #define H_RATIO 9
@@ -28,7 +27,6 @@
 #define WIDTH  W_RATIO*SCALE
 #define HEIGHT H_RATIO*SCALE
 #define ARRAY_LEN(a) (sizeof(a)/sizeof(*a))
-
 
 
 HTMLTag* find_child_html_tag(HTMLTag* tag, const char* name) {
@@ -119,7 +117,22 @@ char* shift_args(int* argc, char*** argv) {
 void help(FILE* sink, const char* exe) {
     fprintf(sink, "%s <input path>\n", exe);
 }
-int main(int argc, char** argv) {
+#include <bsrenderer/font.h>
+typedef struct {
+    BSFont font;
+    float fontSize;
+    float spacing;
+
+    bool show_boxes;
+    // TODO: obvious this is entirely unnecessary
+    float scroll_y;
+    HTMLTag root;
+    HTMLTag* html;
+    HTMLTag* head;
+    HTMLTag* body;
+} BSState;
+BSState state = { 0 };
+int bsmain(BSRenderer* renderer, int argc, char** argv) {
     const char* exe = shift_args(&argc, &argv);
     const char* example_path = NULL;
     bool headless = false;
@@ -164,7 +177,6 @@ int main(int argc, char** argv) {
         quirks_mode = false;
     }
     (void) quirks_mode;
-    HTMLTag root = { 0 };
     AtomTable atom_table = { 0 };
     const char* void_tags[] = {
         "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"
@@ -178,10 +190,10 @@ int main(int argc, char** argv) {
         }
         atom_set_insert(&void_elements, atom);
     }
-    root.name = atom_new("\\root", 5);
-    assert(atom_table_insert(&atom_table, root.name) && "Just buy more RAM");
-    root.display = CSSDISPLAY_BLOCK;
-    HTMLTag* node = &root;
+    state.root.name = atom_new("\\root", 5);
+    assert(atom_table_insert(&atom_table, state.root.name) && "Just buy more RAM");
+    state.root.display = CSSDISPLAY_BLOCK;
+    HTMLTag* node = &state.root;
     // TODO: special handling for those.
     // I couldn't give a shit for now so :(
 #if 0
@@ -216,7 +228,7 @@ int main(int argc, char** argv) {
         HTMLTag* tag = malloc(sizeof(*tag));
         assert(tag && "Just buy more RAM");
         memset(tag, 0, sizeof(*tag));
-        tag->color = ColorToInt(BLACK);
+        tag->color = 0x212121ff;
         int e = html_parse_next_tag(&atom_table, content, tag, &content);
         if(e == -HTMLERR_EOF) break;
         tag->parent = node; 
@@ -227,10 +239,10 @@ int main(int argc, char** argv) {
             return 1;
         }
     }
-    if(node != &root) {
+    if(node != &state.root) {
         HTMLTag* ct = node;
         fprintf(stderr, "WARN: Some unclosed tags:\n");
-        while(ct != &root) {
+        while(ct != &state.root) {
             if(!ct->name) {
                 fprintf(stderr, "- <unnamed>\n");
                 continue;
@@ -257,12 +269,12 @@ int main(int argc, char** argv) {
         // FIXME: clone everything so we can do:
         // free((void*)default_css)
     }
-    HTMLTag* html = find_child_html_tag(&root, "html");
-    HTMLTag* head = find_child_html_tag(html, "head");
+    state.html = find_child_html_tag(&state.root, "html");
+    state.head = find_child_html_tag(state.html, "head");
     Atom* style_atom = atom_table_get(&atom_table, "style", 5);
-    if(style_atom && head) {
-        for(size_t i = 0; i < head->children.len; ++i) {
-            HTMLTag* tag = head->children.items[i];
+    if(style_atom && state.head) {
+        for(size_t i = 0; i < state.head->children.len; ++i) {
+            HTMLTag* tag = state.head->children.items[i];
             if(tag->name == style_atom && tag->children.len > 0) {
                 const char* css_content = tag->children.items[0]->str_content;
                 const char* css_content_end = tag->children.items[0]->str_content + tag->children.items[0]->str_content_len;
@@ -273,49 +285,112 @@ int main(int argc, char** argv) {
             }
         }
     }
-    HTMLTag* body = find_child_html_tag(html, "body");
-    set_id_and_class_fields(&atom_table, body);
-    match_css_patterns(html, &selector_maps);
+    state.body = find_child_html_tag(state.html, "body");
+    set_id_and_class_fields(&atom_table, state.body);
+    match_css_patterns(state.html, &selector_maps);
+#if 0
     HTMLTag* title = find_child_html_tag(head, "title");
     const char* window_title = "Bikeshed";
+    char window_title_buffer[128];
     if(title && title->children.len && !title->children.items[0]->name) {
         HTMLTag* title_str = title->children.items[0];
-        window_title = TextFormat("Bikeshed - %.*s", (int)title_str->str_content_len, title_str->str_content);
+        // TODO: window title sheizung
+        // snprintf(window_title_buffer, sizeof(window_title_buffer), "Bikeshed - %.*s", (int)title_str->str_content_len, title_str->str_content);
     }
-    InitWindow(WIDTH, HEIGHT, window_title);
-    Font font = LoadFont("fonts/iosevka/iosevka-bold.ttf");
-    float fontSize = 24.0f;
-    float spacing = fontSize*0.1f;
+#endif
+    if(!bsrenderer_load_font(renderer, "fonts/iosevka/iosevka-bold.ttf", &state.font)) {
+        fprintf(stderr, "Failed to load iosevka. :((((((\n");
+        return 1;
+    }
+    state.fontSize = 24.0f;
+    state.spacing = state.fontSize*0.1f;
+#if 0
     if (font.texture.id == 0) {
         font = GetFontDefault();
         fontSize = 18.0f;
         spacing = fontSize*0.1f;
     }
-    apply_css_styles(html, fontSize);
-    fixup_tree(body);
+#endif
+    apply_css_styles(state.html, state.fontSize);
+    fixup_tree(state.body);
     dump_html_tag(node, 0);
+    // This is a fucked up solution
+#if 0
     if (headless) {
         CloseWindow();
         return 0;
     }
+#else
+    (void)headless;
+#endif
+    if(!state.html->background_color) state.html->background_color = 0xf5f5f5ff; 
+    fprintf(stderr, "html->background_color=%08X\n", state.html->background_color);
+    return 0;
+}
+// Idk if taking screen_width is the best corse of action but whatever
+void bsupdate(BSRenderer* renderer, float screen_width) {
+    bsrenderer_clear_background_color(renderer, state.html->background_color);
+    size_t x = 0, y = 0;
+    render_box_color_n = 0;
+    if(state.body) {
+        compute_box_html_tag(renderer, state.body, &state.font, state.fontSize, state.fontSize, state.spacing, screen_width, &x, &y);
+        if(state.show_boxes) render_box_html_tag(renderer, state.body, state.scroll_y);
+        render_html_tag(renderer, state.body, &state.font, state.fontSize, state.fontSize, state.spacing, state.scroll_y);
+    }
+}
+#include <raylib.h>
+#include <bsrenderer/fill.h>
+#include <bsrenderer/font.h>
+BSCodepointSize MeasureCodepointEx(Font font, int codepoint, float fontSize, float spacing) {
+    size_t index = GetGlyphIndex(font, codepoint);
+    float scaleFactor = fontSize/font.baseSize;
+    return (BSCodepointSize){
+        font.glyphs[index].advanceX == 0 ? 
+            ((float)font.recs[index].width*scaleFactor + spacing) :
+            ((float)font.glyphs[index].advanceX*scaleFactor + spacing),
+        fontSize
+    };
+}
+BSCodepointSize raylib_measure_codepoint(BSRenderer*, BSFont* font, int codepoint, float fontSize, float spacing) {
+    return MeasureCodepointEx(*(Font*)font->private_data, codepoint, fontSize, spacing);
+}
+void raylib_draw_codepoint(BSRenderer*, BSFont* font, int codepoint, float x, float y, float fontSize, BSColor color) {
+    DrawTextCodepoint(*(Font*)font->private_data, codepoint, (Vector2){x, y}, fontSize, GetColor(color));
+}
+void raylib_draw_rectangle(BSRenderer*, float x, float y, float width, float height, const BSFill* fill) {
+    assert(fill->kind == BSFILL_SOLID_COLOR);
+    DrawRectangleV((Vector2){x, y}, (Vector2){width, height}, GetColor(fill->as.color));
+}
+bool raylib_load_font(BSRenderer*, const char* path, BSFont* result) {
+    // TODO: use generic allocator for allocating state
+    Font* font = malloc(sizeof(*font));
+    memset(font, 0, sizeof(*font));
+    *font = LoadFont(path);
+    result->private_data = font;
+    return true;
+}
+void raylib_clear_background(BSRenderer*, const BSFill* fill) {
+    assert(fill->kind == BSFILL_SOLID_COLOR);
+    ClearBackground(GetColor(fill->as.color));
+}
+BSRenderer raylib_renderer = {
+    .clear_background = raylib_clear_background,
+    .measure_codepoint = raylib_measure_codepoint,
+    .draw_codepoint = raylib_draw_codepoint,
+    .draw_rectangle = raylib_draw_rectangle,
+    .load_font = raylib_load_font,
+};
+int main(int argc, char** argv) {
+    InitWindow(WIDTH, HEIGHT, "Bikeshed");
+    int e = bsmain(&raylib_renderer, argc, argv);
+    if(e != 0) return e;
     SetTargetFPS(60);
-    float scroll_y = 0;
-    bool show_boxes = false;
-    if(!html->background_color) html->background_color = ColorToInt(RAYWHITE);
-    fprintf(stderr, "html->background_color=%08X\n", html->background_color);
     while(!WindowShouldClose()) {
-        scroll_y += GetMouseWheelMove()*16.0;
-        if(IsKeyReleased(KEY_F4)) show_boxes = !show_boxes;
+        // TODO: move this from here and add callbacks
+        state.scroll_y += GetMouseWheelMove()*16.0;
+        if(IsKeyReleased(KEY_F4)) state.show_boxes = !state.show_boxes;
         BeginDrawing();
-        ClearBackground(GetColor(html->background_color));
-        
-        size_t x = 0, y = 0;
-        render_box_color_n = 0;
-        if(body) {
-            compute_box_html_tag(body, font, fontSize, fontSize, spacing, &x, &y);
-            if(show_boxes) render_box_html_tag(body, scroll_y);
-            render_html_tag(body, font, fontSize, fontSize, spacing, scroll_y);
-        }
+        bsupdate(&raylib_renderer, GetScreenWidth());
         EndDrawing();
     }
     CloseWindow();

@@ -1,24 +1,15 @@
+#include <layouter/layouter.h>
 #include <html.h>
 #include <css/pattern_map.h>
 #include <todo.h>
 #include <assert.h>
 #include <string.h>
-#include <raylib.h>
 #include <atom.h>
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
-Vector2 MeasureCodepointEx(Font font, int codepoint, float fontSize, float spacing) {
-    size_t index = GetGlyphIndex(font, codepoint);
-    float scaleFactor = fontSize/font.baseSize;
-    return (Vector2){
-        font.glyphs[index].advanceX == 0 ? 
-            ((float)font.recs[index].width*scaleFactor + spacing) :
-            ((float)font.glyphs[index].advanceX*scaleFactor + spacing),
-        fontSize
-    };
-}
-void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float textFontSize, float spacing, size_t* cursor_x, size_t* cursor_y) {
+#include <bsrenderer/renderer.h>
+void compute_box_html_tag(BSRenderer* renderer, HTMLTag* tag, BSFont* font, float fontSize, float textFontSize, float spacing, float screen_width, size_t* cursor_x, size_t* cursor_y) {
     size_t new_x = tag->x = *cursor_x;
     size_t new_y = tag->y = *cursor_y;
     size_t max_x = tag->x;
@@ -31,31 +22,30 @@ void compute_box_html_tag(HTMLTag* tag, Font font, float fontSize, float textFon
                 new_x = tag->x;
                 new_y = max_y;
             }
-            compute_box_html_tag(child, font, fontSize, tag->fontSize, spacing, &new_x, &new_y);
+            compute_box_html_tag(renderer, child, font, fontSize, tag->fontSize, spacing, screen_width, &new_x, &new_y);
             if(child->x + child->width > max_x) max_x = child->x + child->width;
             if(child->y + child->height > max_y) max_y = child->y + child->height;
         }
     } else {
         float x = new_x;
         float y = new_y;
-        // TODO: unhardcode this
-        // Take as parameter
-        float max_width = GetScreenWidth();
+        float max_width = screen_width;
         for(size_t i = 0; i < tag->str_content_len; ++i) {
             char c = tag->str_content[i];
             if(isspace(c)) {
                 while(i+1 < tag->str_content_len && isspace(tag->str_content[i+1])) i++;
                 c = ' ';
             } else if (!isgraph(c)) c = '?';
-            Vector2 size = MeasureCodepointEx(font, c, textFontSize, spacing);
-            if(x + size.x > max_width) {
+            BSCodepointSize size = bsrenderer_measure_codepoint(renderer, font, c, textFontSize, spacing);
+            // Vector2 size = MeasureCodepointEx(font, c, textFontSize, spacing);
+            if(x + size.width > max_width) {
                 // TODO: unhardcode this?
                 x = 0;// tag->x;
                 y += textFontSize;
             }
-            if(x + size.x > max_x) max_x = ceilf(x + size.x);
-            if(y + size.y > max_y) max_y = ceilf(y + size.y);
-            x += size.x;
+            if(x + size.width > max_x) max_x = ceilf(x + size.width);
+            if(y + size.height > max_y) max_y = ceilf(y + size.height);
+            x += size.width;
         }
         new_x = x;
         new_y = y;

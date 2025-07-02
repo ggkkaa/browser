@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <raylib.h>
 #include <fileutils.h>
 #include <string.h>
 #include <darray.h>
