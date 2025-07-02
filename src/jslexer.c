@@ -6,6 +6,17 @@
 #include <darray.h>
 #include <jsengine.h>
 
+#ifdef _WIN32
+char* strndup(const char* s, size_t n) {
+    size_t len = strnlen(s, n);
+    char* result = (char*) malloc(len + 1);
+    if (!result) return NULL;
+    memcpy(result, s, len);
+    result[len] = '\0';
+    return result;
+}
+#endif
+
 const char* tok_str_map[] = {
     [JS_TOK_INTEGER] = "Integer",
     [JS_TOK_IDENT]   = "Identifier",

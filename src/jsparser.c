@@ -6,6 +6,10 @@
 #include <string.h>
 #include <stdio.h>
 
+#ifdef _WIN32
+typedef size_t ssize_t;
+#endif
+
 #define CHAR_OPS "=*/+-!"
 #define BINOPS   "=*/+-"
 

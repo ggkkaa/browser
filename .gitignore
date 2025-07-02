@@ -3,3 +3,6 @@ nob
 bikeshed
 bin/
 .vscode
+*.exe
+*.exp
+*.lib

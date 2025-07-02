@@ -1,6 +1,30 @@
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #define NOB_IMPLEMENTATION
 #define NOB_STRIP_PREFIX
 #include "nob.h"
+
+#ifdef _WIN32
+int setenv(const char *name, const char *value, int overwrite) {
+    if (name == NULL || *name == '\0' || strchr(name, '=') != NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (!overwrite) {
+        size_t requiredSize;
+        getenv_s(&requiredSize, NULL, 0, name);
+        if (requiredSize > 0) return 0;
+    }
+
+    if (_putenv_s(name, value) != 0) return -1;
+
+    return 0;
+}
+#endif
+
 static bool walk_directory(
     File_Paths* dirs,
     File_Paths* c_sources,
@@ -41,22 +65,35 @@ int main(int argc, char** argv) {
     char* cc = getenv("CC");
     // TODO: automatic checks for the compiler 
     // available on the system. Maybe default to clang on bimbows
+    #ifndef _WIN32
     if(!cc) cc = "cc";
+    #else
+    if(!cc) cc = "clang";
+    #endif
     setenv("CC", cc, 0);
     char* bindir = getenv("BINDIR");
     if(!bindir) bindir = "bin";
     setenv("BINDIR", bindir, 0);
     if(!mkdir_if_not_exists(bindir)) return 1;
-
+    
     // Building Raylib
+    #define VENDOR_RAYLIB_NOB_FILEPATH "vendor/raylib-5.5/nob"
+    #ifdef _WIN32
+    #define VENDOR_RAYLIB_NOB_EXECUTABLE VENDOR_RAYLIB_NOB_FILEPATH".exe"
+    #else
+    #define VENDOR_RAYLIB_NOB_EXECUTABLE VENDOR_RAYLIB_NOB_FILEPATH
+    #endif
+    
     Cmd cmd = { 0 };
-    cmd_append(&cmd, cc, "-o", "vendor/raylib-5.5/nob", "vendor/raylib-5.5/nob.c", "-I./");
+    cmd_append(&cmd, cc, "-o", VENDOR_RAYLIB_NOB_EXECUTABLE, VENDOR_RAYLIB_NOB_FILEPATH".c", "-I./");
+#ifdef _WIN32
+    cmd_append(&cmd, "-D_CRT_SECURE_NO_WARNINGS", "-Wno-deprecated-declarations");
+#endif
     if(!cmd_run_sync_and_reset(&cmd)) return 1;
-    cmd_append(&cmd, "vendor/raylib-5.5/nob");
+    cmd_append(&cmd, VENDOR_RAYLIB_NOB_EXECUTABLE);
     if(!cmd_run_sync_and_reset(&cmd)) return 1;
 
     if(!mkdir_if_not_exists(temp_sprintf("%s/bikeshed", bindir))) return 1;
-
 
     File_Paths dirs = { 0 }, c_sources = { 0 };
     const char* src_dir = "src";
@@ -79,9 +116,14 @@ int main(int argc, char** argv) {
         cmd_append(&cmd,
             "-Wall",
             "-Wextra",
+    // on binbows there are SOOOO many warnings and some of them are unfixable so frick it
+    #ifndef _WIN32
         #if 1
             "-Werror",
         #endif
+    #else
+        "-D_CRT_SECURE_NO_WARNINGS", "-Wno-deprecated-declarations",
+    #endif
         );
         // Include directories 
         cmd_append(&cmd,
@@ -90,22 +132,34 @@ int main(int argc, char** argv) {
         );
         // Actual compilation
         cmd_append(&cmd,
-            "-MD", "-O1", "-g", "-c",
+            "-MP", "-MMD", "-O1", "-g", "-c",
             src,
             "-o", out,
         );
         if(!cmd_run_sync_and_reset(&cmd)) return 1;
     }
-    const char* exe = "bikeshed";
-    if(needs_rebuild(exe, objs.items, objs.count)) {
-        cmd_append(&cmd, cc, "-o", exe);
+
+    #ifndef _WIN32
+    #define EXECUTABLE "bikeshed"
+    #else
+    #define EXECUTABLE "bikeshed.exe"
+    #endif
+
+    if(needs_rebuild(EXECUTABLE, objs.items, objs.count)) {
+        cmd_append(&cmd, cc, "-o", EXECUTABLE);
         da_append_many(&cmd, objs.items, objs.count);
         // Vendor libraries we link with
         cmd_append(&cmd, 
             "-Lbin/raylib",
-            "-l:libraylib.a"
+        #ifndef _WIN32
+            "-l:libraylib.a",
+            "-lm"
+        #else
+            "-lraylib",
+            "-luser32", "-lgdi32", "-lwinmm", "-lshell32", "-lkernel32", "-lopengl32", //bagilion windows things
+        #endif
         );
-        cmd_append(&cmd, "-lm");
+
         if(!cmd_run_sync_and_reset(&cmd)) return 1;
     }
 }
