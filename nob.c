@@ -121,6 +121,7 @@ int main(int argc, char** argv) {
     // on binbows there are SOOOO many warnings and some of them are unfixable so frick it
     #ifndef _WIN32
         #if 1
+            "-pedantic",
             "-Werror",
         #endif
     #else
