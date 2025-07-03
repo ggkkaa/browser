@@ -36,7 +36,8 @@ void apply_css_styles(HTMLTag* tag, float rootFontSize) {
                 dcss_todo("font: %.*s, family: %.*s", (int)font.value_len, font.value, (int)family.value_len, family.value);
                 const char* css_start = font_size.value;
                 const char* css_end = font_size.value + font_size.value_len;
-                int e = css_compute_numeric(rootFontSize, css_start, css_end, &css_start, &tag->fontSize);
+                float parent_font_size = tag->parent->fontSize;
+                int e = css_compute_numeric(rootFontSize, parent_font_size, css_start, css_end, &css_start, &tag->fontSize);
                 if(e < 0) {
                     dcss_err("parsing font_size in font: %s", csserr_str(e));
                     continue;
@@ -93,7 +94,8 @@ void apply_css_styles(HTMLTag* tag, float rootFontSize) {
             }
             CSSArg* arg = &att->args.items[0];
             const char* _end;
-            int e = css_compute_numeric(rootFontSize, arg->value, arg->value+arg->value_len, &_end, &tag->fontSize);
+            float parent_font_size = tag->parent->fontSize;
+            int e = css_compute_numeric(rootFontSize, parent_font_size, arg->value, arg->value+arg->value_len, &_end, &tag->fontSize);
             if(e < 0) {
                 dcss_err("parsing numeric: %s", csserr_str(e));
                 continue;

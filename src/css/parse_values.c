@@ -29,7 +29,7 @@ int css_parse_float(const char* css_content, const char* css_content_end, const 
     *end = css_content;
     return 0;
 }
-int css_compute_numeric(float rootFontSize, const char* css_content, const char* css_content_end, const char** end, float* result) {
+int css_compute_numeric(float rootFontSize, float parentFontSize, const char* css_content, const char* css_content_end, const char** end, float* result) {
     int e;
     *result = 0.0;
     float number;
@@ -39,6 +39,8 @@ int css_compute_numeric(float rootFontSize, const char* css_content, const char*
     size_t unit_len = css_content - unit_str;
     if(unit_len == 3 && memcmp(unit_str, "rem", 3) == 0) {
         *result = number * rootFontSize;
+    } else if (unit_len == 2 && memcmp(unit_str, "em", 2) == 0) {
+        *result = number * parentFontSize;
     } else if (unit_len == 2 && memcmp(unit_str, "px", 2) == 0) {
         *result = number;
     } else if (unit_len) {
