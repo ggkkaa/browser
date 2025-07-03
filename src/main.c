@@ -351,17 +351,21 @@ BSCodepointSize MeasureCodepointEx(Font font, int codepoint, float fontSize, flo
         fontSize
     };
 }
-BSCodepointSize raylib_measure_codepoint(BSRenderer*, BSFont* font, int codepoint, float fontSize, float spacing) {
+BSCodepointSize raylib_measure_codepoint(BSRenderer* _renderer, BSFont* font, int codepoint, float fontSize, float spacing) {
+    (void)_renderer;
     return MeasureCodepointEx(*(Font*)font->private_data, codepoint, fontSize, spacing);
 }
-void raylib_draw_codepoint(BSRenderer*, BSFont* font, int codepoint, float x, float y, float fontSize, BSColor color) {
+void raylib_draw_codepoint(BSRenderer* _renderer, BSFont* font, int codepoint, float x, float y, float fontSize, BSColor color) {
+    (void)_renderer;
     DrawTextCodepoint(*(Font*)font->private_data, codepoint, (Vector2){x, y}, fontSize, GetColor(color));
 }
-void raylib_draw_rectangle(BSRenderer*, float x, float y, float width, float height, const BSFill* fill) {
+void raylib_draw_rectangle(BSRenderer* _renderer, float x, float y, float width, float height, const BSFill* fill) {
+    (void)_renderer;
     assert(fill->kind == BSFILL_SOLID_COLOR);
     DrawRectangleV((Vector2){x, y}, (Vector2){width, height}, GetColor(fill->as.color));
 }
-bool raylib_load_font(BSRenderer*, const char* path, BSFont* result) {
+bool raylib_load_font(BSRenderer* _renderer, const char* path, BSFont* result) {
+    (void)_renderer;
     // TODO: use generic allocator for allocating state
     Font* font = malloc(sizeof(*font));
     memset(font, 0, sizeof(*font));
@@ -369,7 +373,8 @@ bool raylib_load_font(BSRenderer*, const char* path, BSFont* result) {
     result->private_data = font;
     return true;
 }
-void raylib_clear_background(BSRenderer*, const BSFill* fill) {
+void raylib_clear_background(BSRenderer* _renderer, const BSFill* fill) {
+    (void) _renderer;
     assert(fill->kind == BSFILL_SOLID_COLOR);
     ClearBackground(GetColor(fill->as.color));
 }
