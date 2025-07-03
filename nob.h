@@ -1504,6 +1504,21 @@ bool nob_c_needs_rebuild(Nob_String_Builder* string_buffer, Nob_File_Paths* path
         return true;
     }
     nob_da_append(string_buffer, '\0');
+#ifdef _WIN32
+    char* data = string_buffer->items;
+
+    char* current_pos = data;
+    while ((current_pos = strchr(current_pos, '\r'))) {
+        memmove(current_pos, current_pos + 1, strlen(current_pos + 1) + 1);
+    }
+    current_pos = data;
+    while ((current_pos = strchr(current_pos, '\\'))) {
+        if (current_pos[1] != '\n') {
+            *current_pos = '/';
+        }
+        current_pos++;
+    }
+#endif
     char* obj;
     if(!nob_dep_analyse_str(string_buffer->items, &obj, paths)) {
         nob_temp_rewind(temp);
