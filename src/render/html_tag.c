@@ -6,7 +6,7 @@
 #include <bsrenderer/renderer.h>
 
 void render_html_tag(BSRenderer* renderer, HTMLTag* tag, BSFont* font, float fontSize, float textFontSize, float spacing, float scroll_y) {
-    bsrenderer_draw_rectangle_color(renderer, tag->x, tag->y, tag->width, tag->height, tag->background_color);
+    bsrenderer_draw_rectangle_color(renderer, tag->x, tag->y + scroll_y, tag->width, tag->height, tag->background_color);
     // DrawRectangle(tag->x, tag->y, tag->width, tag->height, GetColor(tag->background_color));
     if(tag->name) {
         if(tag->name->len == 5 && strncmp(tag->name->data, "style", 5) == 0) return;
